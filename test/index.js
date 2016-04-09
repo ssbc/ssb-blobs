@@ -121,5 +121,32 @@ tape('want - want -has', function (t) {
   pull(pull.once(blob), carol.add())
 })
 
+tape('peers want what you have', function (t) {
+  var alice = Blobs(MockBlobStore())
+  var bob   = Blobs(MockBlobStore())
+  var carol = Blobs(MockBlobStore())
+
+  var blob = Fake('baz', 64)
+  var h = hash(blob)
+
+  peers('alice', alice, 'bob', bob)
+  peers('bob', bob, 'carol', carol)
+
+//  alice.want(h, function (err) {
+////    t.end()
+//  })
+
+  pull(
+    carol.changes(),
+    pull.drain(function (_h) {
+      t.equal(_h, h)
+      t.end()
+    })
+  )
+
+  alice.want(h, function () {})
+  pull(pull.once(blob), alice.add())
+
+})
 
 
