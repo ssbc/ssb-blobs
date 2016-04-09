@@ -83,6 +83,7 @@ module.exports = function (blobs) {
 
   function has(peer, id, size) {
     console.log('HAS-GET?', want, peer, size)
+    //TODO: test do not get from more than one peer at a time.
     if(want[id] && size < MAX_SIZE) get(peer, id)
   }
 
@@ -126,8 +127,8 @@ module.exports = function (blobs) {
         waiting[hash] = [cb]
         blobs.has(hash, function (err, has) {
           if(has) {
-            while(wating[hash].length)
-              wating[hash].shift()(null, true)
+            while(waiting[hash].length)
+              waiting[hash].shift()(null, true)
             delete waiting[hash]
           }
           else
@@ -156,19 +157,4 @@ module.exports = function (blobs) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
