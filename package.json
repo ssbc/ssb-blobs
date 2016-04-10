@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "pull-notify": "0.0.2",
+    "pull-stream": "^3.3.0",
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {

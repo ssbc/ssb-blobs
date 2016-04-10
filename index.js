@@ -27,7 +27,6 @@ module.exports = function (blobs) {
   var send = {}, timer
 
   function queue (hash, hops) {
-    console.log('Queue', hash, hops, send)
     if(hops < 0)
       want[hash] = hops
     else
@@ -53,12 +52,7 @@ module.exports = function (blobs) {
   }
 
   function get (peer, id) {
-    pull(
-      peers[peer].blobs.get(id),
-      add(id, function (err, h) {
-        console.log('GOT', h)
-      })
-    )
+    pull(peers[peer].blobs.get(id), add(id, noop))
   }
 
   function wants (peer, id, hops) {
@@ -157,4 +151,7 @@ module.exports = function (blobs) {
     }
   }
 }
+
+
+
 
