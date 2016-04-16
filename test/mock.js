@@ -30,7 +30,10 @@ module.exports = function MockBlobStore () {
       cb(null, store[blobId] ? store[blobId].length : null)
     },
     add: function (_hash, cb) {
+      if('function' == typeof _hash)
+        cb = _hash, _hash = null
       return pull.collect(function (err, data) {
+        if(err) return cb(err)
         var h = add(Buffer.concat(data), _hash)
         if(!h) cb(new Error('wrong hash'))
         else cb(null, h)
@@ -38,3 +41,5 @@ module.exports = function MockBlobStore () {
     }
   }
 }
+
+
