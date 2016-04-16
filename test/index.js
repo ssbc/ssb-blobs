@@ -176,14 +176,11 @@ module.exports = function (createBlobStore) {
     pull(
       bob.changes(),
       pull.drain(function (_h) {
-        console.log('*****************************8')
-        console.log("DRAIN", _h, n++)
         t.equal(_h, h)
         t.end()
       })
     )
 
-  //  alice.want(h, function () {})
     pull(pull.once(blob), alice.add())
     pull(pull.once(blob), carol.add())
 
@@ -196,11 +193,6 @@ module.exports = function (createBlobStore) {
 
 if(!module.parent)
   module.exports(require('./mock'))
-
-
-
-
-
 
 
 
