@@ -22,7 +22,7 @@ module.exports = function (blobs) {
   var notify = Notify()
   var changes = Notify()
 
-  var want = {}, waiting = {}
+  var want = {}, waiting = {}, getting = {}
 
   var send = {}, timer
 
@@ -47,12 +47,20 @@ module.exports = function (blobs) {
     cb = cb || noop
     return blobs.add(id, function (err, id) {
       if(err) cb(err)
-      else cb(null, changes(id))
+      else cb(null, changes(id)) //also notify any listeners.
     })
   }
 
   function get (peer, id) {
-    pull(peers[peer].blobs.get(id), add(id, noop))
+    getting[id] = peer
+    pull(peers[peer].blobs.get(id), add(id, function (err) {
+      delete getting[id]
+      if(err) {
+        //check if another peer has this.
+        //if so get it from them.
+      } else
+        delete want[id]
+    }))
   }
 
   function wants (peer, id, hops) {
@@ -78,7 +86,7 @@ module.exports = function (blobs) {
   function has(peer, id, size) {
     console.log('HAS-GET?', want, peer, size)
     //TODO: test do not get from more than one peer at a time.
-    if(want[id] && size < MAX_SIZE) get(peer, id)
+    if(want[id] && !getting[id] && size < MAX_SIZE) get(peer, id)
   }
 
   function process (data, peer, cb) {
@@ -108,6 +116,7 @@ module.exports = function (blobs) {
   }
 
   return {
+    has: blobs.has,
     get: blobs.get,
     add: add,
     changes: function () {
@@ -151,7 +160,4 @@ module.exports = function (blobs) {
     }
   }
 }
-
-
-
 

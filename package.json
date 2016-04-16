@@ -8,11 +8,14 @@
     "url": "git://github.com/dominictarr/ssb-blobs.git"
   },
   "dependencies": {
-    "pull-notify": "0.0.2",
+    "pull-notify": "^0.1.0",
     "pull-stream": "^3.3.0",
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {
+    "multiblob": "^1.9.3",
+    "osenv": "^0.1.3",
+    "rimraf": "^2.5.2",
     "tape": "^4.5.1"
   },
   "scripts": {
