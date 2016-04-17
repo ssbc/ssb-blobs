@@ -17,12 +17,14 @@ var MAX_SIZE = 5*MB
 
 function noop () {}
 
-module.exports = function (blobs) {
+module.exports = function (blobs, name) {
 
   var notify = Notify()
   var changes = Notify()
 
-  var want = {}, waiting = {}, getting = {}
+  var peers = {}
+
+  var want = {}, waiting = {}, getting = {}, available = {}
 
   var send = {}, timer
 
@@ -41,25 +43,34 @@ module.exports = function (blobs) {
     //}, 10)
   }
 
-  var peers = {}
-
   function add(id, cb) {
+    if('function' === typeof id)
+      cb = id, id = null
     cb = cb || noop
-    return blobs.add(id, function (err, id) {
+    function next (err, id) {
       if(err) cb(err)
       else cb(null, changes(id)) //also notify any listeners.
-    })
+    }
+    return id ? blobs.add(id, next) : blobs.add(next)
   }
 
-  function get (peer, id) {
+  function isAvailable(id) {
+    for(var peer in peers)
+      if(available[peer] && available[peer][id])
+        return peer
+  }
+
+  function get (peer, id, name) {
     getting[id] = peer
-    pull(peers[peer].blobs.get(id), add(id, function (err) {
+    var source = peers[peer].blobs.get(id)
+    pull(source, add(id, function (err, _id) {
       delete getting[id]
       if(err) {
         //check if another peer has this.
         //if so get it from them.
-      } else
-        delete want[id]
+        delete available[peer][id]
+        if(peer = isAvailable(id)) get(peer, id)
+      }
     }))
   }
 
@@ -67,6 +78,9 @@ module.exports = function (blobs) {
     if(!want[id] || want[id] < hops) {
       want[id] = hops
       queue(id, hops)
+      if(peer = isAvailable(id)) {
+        get(peer, id)
+      }
     }
   }
 
@@ -84,8 +98,8 @@ module.exports = function (blobs) {
   )
 
   function has(peer, id, size) {
-    console.log('HAS-GET?', want, peer, size)
-    //TODO: test do not get from more than one peer at a time.
+    available[peer] = available[peer] || {}
+    available[peer][id] = size
     if(want[id] && !getting[id] && size < MAX_SIZE) get(peer, id)
   }
 
@@ -123,7 +137,11 @@ module.exports = function (blobs) {
       return changes.listen()
     },
     want: function (hash, cb) {
-      console.log('WANT', hash)
+      //always broadcast wants immediately, because of race condition
+      //between has and adding a blob (needed to pass test/async.js)
+      queue(hash, -1)
+      var peer = isAvailable(hash)
+      if(peer) get(peer, hash)
       if(waiting[hash])
         waiting[hash].push(cb)
       else {
@@ -134,8 +152,6 @@ module.exports = function (blobs) {
               waiting[hash].shift()(null, true)
             delete waiting[hash]
           }
-          else
-            queue(hash, -1)
         })
       }
     },
@@ -153,8 +169,10 @@ module.exports = function (blobs) {
             if(!isEmpty(has_data)) source.push(has_data)
           })
         }, function (_) {
-          if(peers[peer.id] == peer)
+          if(peers[peer.id] == peer) {
             delete peers[peer.id]
+            delete available[peer.id]
+          }
         })
       }
     }
