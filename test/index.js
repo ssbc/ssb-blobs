@@ -240,7 +240,6 @@ module.exports = function (createBlobStore, createAsync) {
       pull(
         bob.changes(),
         pull.drain(function (_h) {
-          console.log('CHANGED', _h)
           assert.equal(_h, h)
           async.done()
         })
@@ -323,4 +322,5 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
+
 
