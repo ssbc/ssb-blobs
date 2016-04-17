@@ -293,7 +293,31 @@ module.exports = function (createBlobStore, createAsync) {
     })
   })
 
+  tape('legacy', function (t) {
+    createAsync(function (async) {
+      //if a peer is using legacy mode
+      //then it won't use createWantStream
+      //instead it will just call has(blobIds)
+      //interpret that like receiving a want stream message {<id>: -1}
+      //also, if a peer doesn't have createWantStream
+      //call peer.has instead.
 
+      //okay... so currently, the client creates a duplex stream
+      //but then how does the server know that the client is legacy?
+      //(which would mean it doesn't call that method... just waiting
+      //for it not to call is a timeout, which is bad, non deterministic tests)
+
+      //SOLUTION: split the duplex into two source streams that hook up!
+      //each side calls the remote source, and returns the sink they have
+      //prepared!
+
+      async.done()
+    }, function (err) {
+      if(err) throw err
+      t.end()
+    })
+
+  })
 
 }
 
