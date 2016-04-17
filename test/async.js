@@ -34,10 +34,10 @@ function hash(buf) {
             .update(buf).digest('base64')+'.sha256'
 }
 
-module.exports = function (createBlobStore) {
+module.exports = function (createBlobStore, createAsync) {
 
   tape('simple', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var blobs = Blobs(createBlobStore('simple', async))
 
       var b = Fake('hello', 256), h = hash(b)
@@ -73,7 +73,7 @@ module.exports = function (createBlobStore) {
 
 
   tape('want', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var blobs = Blobs(createBlobStore('want', async))
       var h = hash(Fake('foobar', 64))
       var res = {}
@@ -112,7 +112,7 @@ module.exports = function (createBlobStore) {
   }
 
   tape('want - has', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var alice = Blobs(createBlobStore('wh-alice', async))
       var bob   = Blobs(createBlobStore('wh-bob', async))
       var blob = Fake('foobar', 64)
@@ -138,7 +138,7 @@ module.exports = function (createBlobStore) {
 
 
   tape('want - has 2', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var alice = Blobs(createBlobStore('wh2-alice', async))
       var bob   = Blobs(createBlobStore('wh2-bob', async))
       var blob = Fake('foobar', 64)
@@ -163,7 +163,7 @@ module.exports = function (createBlobStore) {
 
 
   tape('want - want -has', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var alice = Blobs(createBlobStore('wwh-alice', async))
       var bob   = Blobs(createBlobStore('wwh-bob', async))
       var carol = Blobs(createBlobStore('wwh-carol', async))
@@ -191,8 +191,9 @@ module.exports = function (createBlobStore) {
   })
 
   tape('peers want what you have', function (t) {
-    interleavings.test(function (async) {
-      console.log(process._events['exit'].reverse())
+    createAsync(function (async) {
+      if(Array.isArray(process._events['exit']))
+        console.log(process._events['exit'].reverse())
       var alice = Blobs(createBlobStore('peer-alice', async), 'alice')
       var bob   = Blobs(createBlobStore('peer-bob', async), 'bob')
       var carol = Blobs(createBlobStore('peer-carol', async), 'carol')
@@ -221,7 +222,7 @@ module.exports = function (createBlobStore) {
 
 
   tape('triangle', function (t) {
-    interleavings.test(function (async) {
+    createAsync(function (async) {
       var n = 0
       var alice = Blobs(createBlobStore('triangle-alice', async), 'alice')
       var bob   = Blobs(createBlobStore('triangle-bob', async), 'bob')
@@ -252,40 +253,36 @@ module.exports = function (createBlobStore) {
   })
 
   tape('corrupt', function (t) {
-    interleavings.test(function (async) {
-    var n = 0
-    var alice = Blobs(createBlobStore('corrupt-alice', async), 'alice')
-    var bob   = Blobs(createBlobStore('corrupt-bob', async), 'bob')
-    var carol = Blobs(createBlobStore('corrupt-carol', async), 'carol')
+    createAsync(function (async) {
+      var n = 0
+      var alice = Blobs(createBlobStore('corrupt-alice', async), 'alice')
+      var bob   = Blobs(createBlobStore('corrupt-bob', async), 'bob')
+      var carol = Blobs(createBlobStore('corrupt-carol', async), 'carol')
 
-    //everything that comes from bob is corrupt
-    var get = alice.get
-    alice.get = function (id) {
-      return pull(get(id), bitflipper(1))
-    }
+      //everything that comes from bob is corrupt
+      var get = alice.get
+      alice.get = function (id) {
+        return pull(get(id), bitflipper(1))
+      }
 
-    var blob = Fake('baz', 64)
-    var h = hash(blob)
+      var blob = Fake('baz', 64)
+      var h = hash(blob)
 
-    peers('alice', alice, 'bob', bob)
-    peers('bob', bob, 'carol', carol)
+      peers('alice', alice, 'bob', bob)
+      peers('bob', bob, 'carol', carol)
 
-    pull(
-      bob.changes(),
-      pull.drain(function (_h) {
-        console.log('HAS', _h)
-        assert.equal(_h, h)
-        async.done()
-      })
-    )
+      pull(
+        bob.changes(),
+        pull.drain(function (_h) {
+          console.log('HAS', _h)
+          assert.equal(_h, h)
+          async.done()
+        })
+      )
 
-    bob.want(h, function () {})
-//    pull(pull.once(blob), alice.add())
-    pull(pull.once(blob), alice.add(function () {
-
-    }))
-    pull(pull.once(blob), carol.add(function () {}))
-
+      bob.want(h, function () {})
+      pull(pull.once(blob), alice.add())
+      pull(pull.once(blob), carol.add())
     }, function (err) {
       if(err) throw err
       t.end()
@@ -297,10 +294,7 @@ module.exports = function (createBlobStore) {
 }
 
 if(!module.parent)
-  module.exports(require('./mock'))
-
-
-
+  module.exports(require('./mock'), interleavings.test)
 
 
 
