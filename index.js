@@ -61,6 +61,7 @@ module.exports = function (blobs, name) {
   }
 
   function get (peer, id, name) {
+    if(getting[id]) return
     getting[id] = peer
     var source = peers[peer].blobs.get(id)
     pull(source, add(id, function (err, _id) {
@@ -69,7 +70,7 @@ module.exports = function (blobs, name) {
         //check if another peer has this.
         //if so get it from them.
         delete available[peer][id]
-        if(peer = isAvailable(id)) get(peer, id)
+        if(peer = isAvailable(id)) get(peer, id, name)
       }
     }))
   }
@@ -140,8 +141,6 @@ module.exports = function (blobs, name) {
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
       queue(hash, -1)
-      var peer = isAvailable(hash)
-      if(peer) get(peer, hash)
       if(waiting[hash])
         waiting[hash].push(cb)
       else {
