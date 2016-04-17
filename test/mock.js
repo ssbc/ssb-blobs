@@ -21,17 +21,14 @@ module.exports = function MockBlobStore (name, async) {
     store: store,
 
     get: function (blobId) {
-      console.log('GET', !!store[blobId], blobId)
       if(!store[blobId])
         return pull(pull.error(new Error('no blob:'+blobId)), async.through('get-error'))
       return pull(pull.values([store[blobId]]), async.through('get'))
     },
     has: async(function (blobId, cb) {
-      console.log('**** HAS', name, blobId)
       async(cb, 'has-cb')(null, store[blobId] ? true : false)
     }, 'has'),
     size: async(function (blobId, cb) {
-      console.log('**** SIZE', name, blobId)
       async(cb, 'size-cb')(null, store[blobId] ? store[blobId].length : null)
     }, 'size'),
     add: function (_hash, cb) {
@@ -46,5 +43,4 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
-
 

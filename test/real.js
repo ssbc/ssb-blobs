@@ -12,12 +12,6 @@ function test_create(name) {
   return create(dir)
 }
 
-require('./async')(test_create, function (test, done) {
-  function async(fn) {
-    return fn
-  }
-  async.through = function () {}
-  async.done = done
-  test(async)
-})
+
+require('./')(test_create, require('./sync'))
 
