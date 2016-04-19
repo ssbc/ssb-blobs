@@ -36,68 +36,68 @@ function hash(buf) {
 
 module.exports = function (createBlobStore, createAsync) {
 
-  tape('simple', function (t) {
-    createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('simple', async))
-
-      var b = Fake('hello', 256), h = hash(b)
-      pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
-        if(err) throw err
-          console.log('added', _h)
-        t.equal(_h, h)
-
-        var req = {}
-        req[h] = 0
-        var res = {}
-        res[h] = 256
-
-        pull(
-          pull.once(req),
-          async.through(),
-          blobs.createWantStream(),
-          async.through(),
-          pull.find(null, function (err, _res) {
-            if(err) throw err
-            //requests 
-            assert.deepEqual(_res, res)
-            async.done()
-          })
-        )
-      }))
-    }, function (err, results) {
-      if(err) throw err
-//      console.log(err, results)
-      t.end()
-    })
-  })
-
-
-  tape('want', function (t) {
-    createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('want', async))
-      var h = hash(Fake('foobar', 64))
-      var res = {}
-      res[h] = -1
-
-      pull(
-        blobs.createWantStream(),
-        async.through(),
-        pull.find(null, function (err, _res) {
-          if(err) throw err
-          //requests 
-          assert.deepEqual(_res, res)
-          async.done()
-        })
-      )
-
-      blobs.want(h)
-    }, function (err, results) {
-      if(err) throw err
-      //t.deepEqual(_res, res)
-      t.end()
-    })
-  })
-
+//  tape('simple', function (t) {
+//    createAsync(function (async) {
+//      var blobs = Blobs(createBlobStore('simple', async))
+//
+//      var b = Fake('hello', 256), h = hash(b)
+//      pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
+//        if(err) throw err
+//          console.log('added', _h)
+//        t.equal(_h, h)
+//
+//        var req = {}
+//        req[h] = 0
+//        var res = {}
+//        res[h] = 256
+//
+//        pull(
+//          pull.once(req),
+//          async.through(),
+//          blobs.createWantStream(),
+//          async.through(),
+//          pull.find(null, function (err, _res) {
+//            if(err) throw err
+//            //requests 
+//            assert.deepEqual(_res, res)
+//            async.done()
+//          })
+//        )
+//      }))
+//    }, function (err, results) {
+//      if(err) throw err
+////      console.log(err, results)
+//      t.end()
+//    })
+//  })
+//
+//
+//  tape('want', function (t) {
+//    createAsync(function (async) {
+//      var blobs = Blobs(createBlobStore('want', async))
+//      var h = hash(Fake('foobar', 64))
+//      var res = {}
+//      res[h] = -1
+//
+//      pull(
+//        blobs.createWantStream(),
+//        async.through(),
+//        pull.find(null, function (err, _res) {
+//          if(err) throw err
+//          //requests 
+//          assert.deepEqual(_res, res)
+//          async.done()
+//        })
+//      )
+//
+//      blobs.want(h)
+//    }, function (err, results) {
+//      if(err) throw err
+//      //t.deepEqual(_res, res)
+//      t.end()
+//    })
+//  })
+//
   function log (name) {
     if(LOGGING)
       return pull.through(function (e) {
@@ -108,10 +108,16 @@ module.exports = function (createBlobStore, createAsync) {
   }
 
   function peers (nameA, a, nameB, b, async) {
-    var as = a.createWantStream.call({id: nameB, blobs: b})
-    var bs = b.createWantStream.call({id: nameA, blobs: a})
-    var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
-    pull(as, log(na+nb), bs, log(nb+na), as)
+//    if(process.env.NEW) {
+      var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
+      a._onConnect({id: nameB, blobs: b}, na+nb)
+      b._onConnect({id: nameA, blobs: a}, nb+na)
+//    } else {
+//      var as = a.createWantStream.call({id: nameB, blobs: b})
+//      var bs = b.createWantStream.call({id: nameA, blobs: a})
+//      var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
+//      pull(as, log(na+nb), bs, log(nb+na), as)
+//    }
   }
 
   tape('want - has', function (t) {
@@ -125,6 +131,7 @@ module.exports = function (createBlobStore, createAsync) {
 
       alice.want(h, function (err, has) {
         if(err) throw err
+        console.log('ALICE has', h)
         alice.has(h, function (err, has) {
           if(err) throw err
           assert.ok(has)
@@ -322,5 +329,7 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
+
+
 
 

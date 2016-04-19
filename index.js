@@ -24,7 +24,7 @@ module.exports = function (blobs, name) {
 
   var peers = {}
 
-  var want = {}, waiting = {}, getting = {}, available = {}
+  var want = {}, waiting = {}, getting = {}, available = {}, streams = {}
 
   var send = {}, timer
 
@@ -130,7 +130,28 @@ module.exports = function (blobs, name) {
     }
   }
 
-  return {
+  function wantSink (peer) {
+    if(!streams[peer.id])
+      streams[peer.id] = notify.listen()
+
+    return pull.drain(function (data) {
+        //respond with list of blobs you already have,
+        process(data, peer.id, function (err, has_data) {
+          //(if you have any)
+          if(!isEmpty(has_data)) streams[peer.id].push(has_data)
+        })
+      }, function (_) {
+        //handle error and fallback to legacy mode.
+        if(peers[peer.id] == peer) {
+          delete peers[peer.id]
+          delete available[peer.id]
+          delete streams[peer.id]
+        }
+      })
+  }
+
+  var self
+  return self = {
     has: blobs.has,
     get: blobs.get,
     add: add,
@@ -140,7 +161,10 @@ module.exports = function (blobs, name) {
     want: function (hash, cb) {
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
-      queue(hash, -1)
+//      console.log('AVAIL', )
+      var id = isAvailable(hash)
+      if(!id) queue(hash, -1)
+
       if(waiting[hash])
         waiting[hash].push(cb)
       else {
@@ -153,28 +177,37 @@ module.exports = function (blobs, name) {
           }
         })
       }
+      if(id) return get(id, hash)
+
+
+    },
+    createWants: function () {
+//      peers[this.id] = this
+//      streams[this.id] = notify.listen()
+      console.log("WANTS", this.id)
+      return streams[this.id] || (streams[this.id] = notify.listen())
     },
     createWantStream: function () {
-      var source = notify.listen()
-      var peer = this
-      peers[peer.id] = this
-      //queue current want list...
+      var peer = peers[this.id] = this
+      var source = self.createWants.call(peer)
       return {
         source: source,
-        sink: pull.drain(function (data) {
-          //respond with list of blobs you already have,
-          process(data, peer.id, function (err, has_data) {
-            //(if you have any)
-            if(!isEmpty(has_data)) source.push(has_data)
-          })
-        }, function (_) {
-          if(peers[peer.id] == peer) {
-            delete peers[peer.id]
-            delete available[peer.id]
-          }
-        })
+        sink: wantSink(peer)
       }
+    },
+    _onConnect: function (other, name) {
+      peers[other.id] = other
+      //streams[other.id] = notify.listen()
+      console.log('CONNECT', name)
+      var source = other.blobs.createWants.call({id: name, blobs: self})
+      var sink = wantSink(other)
+
+      pull(source, pull.through(function (data) {
+        console.log(name, data)
+      }), sink)
     }
   }
 }
+
+
 
