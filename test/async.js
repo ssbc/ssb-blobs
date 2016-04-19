@@ -1,3 +1,4 @@
 var interleavings = require('interleavings')
-require('./')(require('./mock'), interleavings.test)
+require('./simple')(require('./mock'), interleavings.test)
+require('./integration')(require('./mock'), interleavings.test)
 

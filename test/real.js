@@ -13,5 +13,6 @@ function test_create(name) {
 }
 
 
-require('./')(test_create, require('./sync'))
+require('./simple')(test_create, require('./sync'))
+require('./integration')(test_create, require('./sync'))
 
