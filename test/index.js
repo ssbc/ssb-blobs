@@ -36,67 +36,71 @@ function hash(buf) {
 
 module.exports = function (createBlobStore, createAsync) {
 
-//  tape('simple', function (t) {
-//    createAsync(function (async) {
-//      var blobs = Blobs(createBlobStore('simple', async))
+  tape('simple', function (t) {
+    createAsync(function (async) {
+      var blobs = Blobs(createBlobStore('simple', async))
+
+      var b = Fake('hello', 256), h = hash(b)
+      pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
+        if(err) throw err
+          console.log('added', _h)
+        t.equal(_h, h)
+
+        var req = {}
+        req[h] = 0
+        var res = {}
+        res[h] = 256
+
+        pull(
+          pull.once(req),
+          async.through(),
+          blobs._wantSink({id: 'test'})
+        )
+
+        pull(
+          blobs.createWants.call({id: 'test'}),
+          async.through(),
+          pull.find(null, function (err, _res) {
+            if(err) throw err
+            //requests 
+            assert.deepEqual(_res, res)
+            async.done()
+          })
+        )
+      }))
+    }, function (err, results) {
+      if(err) throw err
+//      console.log(err, results)
+      t.end()
+    })
+  })
+
 //
-//      var b = Fake('hello', 256), h = hash(b)
-//      pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
-//        if(err) throw err
-//          console.log('added', _h)
-//        t.equal(_h, h)
-//
-//        var req = {}
-//        req[h] = 0
-//        var res = {}
-//        res[h] = 256
-//
-//        pull(
-//          pull.once(req),
-//          async.through(),
-//          blobs.createWantStream(),
-//          async.through(),
-//          pull.find(null, function (err, _res) {
-//            if(err) throw err
-//            //requests 
-//            assert.deepEqual(_res, res)
-//            async.done()
-//          })
-//        )
-//      }))
-//    }, function (err, results) {
-//      if(err) throw err
-////      console.log(err, results)
-//      t.end()
-//    })
-//  })
-//
-//
-//  tape('want', function (t) {
-//    createAsync(function (async) {
-//      var blobs = Blobs(createBlobStore('want', async))
-//      var h = hash(Fake('foobar', 64))
-//      var res = {}
-//      res[h] = -1
-//
-//      pull(
-//        blobs.createWantStream(),
-//        async.through(),
-//        pull.find(null, function (err, _res) {
-//          if(err) throw err
-//          //requests 
-//          assert.deepEqual(_res, res)
-//          async.done()
-//        })
-//      )
-//
-//      blobs.want(h)
-//    }, function (err, results) {
-//      if(err) throw err
-//      //t.deepEqual(_res, res)
-//      t.end()
-//    })
-//  })
+  tape('want', function (t) {
+    createAsync(function (async) {
+      var blobs = Blobs(createBlobStore('want', async))
+      var h = hash(Fake('foobar', 64))
+      var res = {}
+      res[h] = -1
+
+      pull(
+        blobs.createWants.call({id: 'test'}),
+        async.through(),
+        pull.find(null, function (err, _res) {
+          if(err) throw err
+          //requests 
+          assert.deepEqual(_res, res)
+          async.done()
+        })
+      )
+
+      blobs.want(h)
+    }, function (err, results) {
+      if(err) throw err
+      //t.deepEqual(_res, res)
+      t.end()
+    })
+  })
 //
   function log (name) {
     if(LOGGING)

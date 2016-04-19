@@ -195,6 +195,7 @@ module.exports = function (blobs, name) {
         sink: wantSink(peer)
       }
     },
+    _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
       //streams[other.id] = notify.listen()
