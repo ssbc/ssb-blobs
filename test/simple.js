@@ -96,6 +96,7 @@ module.exports = function (createBlobStore, createAsync) {
       res[h] = -2
 
       pull(
+        //also send {<hash>: -1} which simulates a cycle.
         pull.values([req, res]),
         async.through(),
         blobs._wantSink({id: 'test'})
