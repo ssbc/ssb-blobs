@@ -253,7 +253,7 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('gurg', 64)
       var h = hash(blob)
       alice.want(h, function (err, has) {
-        t.end()
+        async.done()
       })
 
       pull(pull.once(blob), dan.add(h))
@@ -295,6 +295,7 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
+
 
 
 
