@@ -4,6 +4,22 @@ function isEmpty (o) {
   return true
 }
 
+function single (fn) {
+  var waiting = {}
+  return function (value, cb) {
+    if(!waiting[value]) {
+      waiting[value] = [cb]
+      fn(value, function done (err, result) {
+        var cbs = waiting[value]
+        delete waiting[value]
+        while(cbs.length) cbs.shift()(err, result)
+      })
+    }
+    else
+      waiting[value].push(cb)
+  }
+}
+
 function isInteger (i) {
   return Number.isInteger(i)
 }
@@ -23,9 +39,7 @@ module.exports = function (blobs, name) {
   var changes = Notify()
 
   var peers = {}
-
   var want = {}, waiting = {}, getting = {}, available = {}, streams = {}
-
   var send = {}, timer
 
   function queue (hash, hops) {
@@ -35,23 +49,33 @@ module.exports = function (blobs, name) {
       delete want[hash]
 
     send[hash] = hops
-  //  clearTimeout(timer)
-//    timer = setTimeout(function () {
+    //setImmediate(function () {
       var _send = send
       send = {}
       notify(_send)
-    //}, 10)
+    //})
   }
 
   function add(id, cb) {
+    var size = 0
     if('function' === typeof id)
       cb = id, id = null
+    console.log('ADD', id)
     cb = cb || noop
     function next (err, id) {
+      console.log('added', id)
       if(err) cb(err)
-      else cb(null, changes(id)) //also notify any listeners.
+      else {
+        changes({id: id, size: size})
+        cb(null, id) //also notify any listeners.
+      }
     }
-    return id ? blobs.add(id, next) : blobs.add(next)
+    return pull(
+      pull.through(function (data) {
+        size += Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)
+      }),
+      id ? blobs.add(id, next) : blobs.add(next)
+    )
   }
 
   function isAvailable(id) {
@@ -67,9 +91,9 @@ module.exports = function (blobs, name) {
     pull(source, add(id, function (err, _id) {
       delete getting[id]
       if(err) {
+        delete available[peer][id]
         //check if another peer has this.
         //if so get it from them.
-        delete available[peer][id]
         if(peer = isAvailable(id)) get(peer, id, name)
       }
     }))
@@ -85,16 +109,20 @@ module.exports = function (blobs, name) {
     }
   }
 
+  var size = single(blobs.size)
+
   pull(
     changes.listen(),
-    pull.drain(function (id) {
-      blobs.size(id, function (err, size) {
-        if(size) queue(id, size)
-      })
-      delete want[id]
-      if(waiting[id])
-        while(waiting[id].length)
-          waiting[id].shift()(null, true)
+    pull.drain(function (data) {
+      queue(data.id, data.size)
+//      size(id, function (err, size) {
+//        console.log('changes SIZE', size)
+//        if(size) queue(id, size)
+//      })
+      delete want[data.id]
+      if(waiting[data.id])
+        while(waiting[data.id].length)
+          waiting[data.id].shift()(null, true)
     })
   )
 
@@ -109,10 +137,12 @@ module.exports = function (blobs, name) {
     for(var id in data) {
       if(isBlobId(id) && isInteger(data[id])) {
         if(data[id] <= 0) { //interpret as "WANT"
+          console.log('HAVE?', id, data[id])
           n++
           //check whether we already *HAVE* this file.
           //respond with it's size, if we do.
-          blobs.size(id, function (err, size) {
+          size(id, function (err, size) {
+            console.log('Wants?', id, data[id], size)
             if(size) res[id] = size
             else wants(peer, id, data[id] - 1)
             next()
@@ -153,15 +183,18 @@ module.exports = function (blobs, name) {
   var self
   return self = {
     has: blobs.has,
+    size: size,
     get: blobs.get,
     add: add,
-    changes: function () {
-      return changes.listen()
+    changes: function (opts) {
+      if(false && opts && opts.long)
+        return changes.listen()
+      else
+        return pull(changes.listen(), pull.map(function (e) { return e.id }))
     },
     want: function (hash, cb) {
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
-//      console.log('AVAIL', )
       var id = isAvailable(hash)
       if(!id) queue(hash, -1)
 
@@ -178,37 +211,27 @@ module.exports = function (blobs, name) {
         })
       }
       if(id) return get(id, hash)
-
-
     },
     createWants: function () {
-//      peers[this.id] = this
-//      streams[this.id] = notify.listen()
-      console.log("WANTS", this.id)
       return streams[this.id] || (streams[this.id] = notify.listen())
     },
-    createWantStream: function () {
-      var peer = peers[this.id] = this
-      var source = self.createWants.call(peer)
-      return {
-        source: source,
-        sink: wantSink(peer)
-      }
-    },
+    //private api. used for testing. not exposed over rpc.
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
-      //streams[other.id] = notify.listen()
-      console.log('CONNECT', name)
-      var source = other.blobs.createWants.call({id: name, blobs: self})
-      var sink = wantSink(other)
-
-      pull(source, pull.through(function (data) {
-        console.log(name, data)
-      }), sink)
+      pull(other.blobs.createWants(), pull.through(function (d) {
+        console.log(name, d)
+      }), wantSink(other))
     }
   }
 }
+
+
+
+
+
+
+
 
 
 
