@@ -115,10 +115,6 @@ module.exports = function (blobs, name) {
     changes.listen(),
     pull.drain(function (data) {
       queue(data.id, data.size)
-//      size(id, function (err, size) {
-//        console.log('changes SIZE', size)
-//        if(size) queue(id, size)
-//      })
       delete want[data.id]
       if(waiting[data.id])
         while(waiting[data.id].length)
@@ -202,7 +198,7 @@ module.exports = function (blobs, name) {
         waiting[hash].push(cb)
       else {
         waiting[hash] = [cb]
-        blobs.has(hash, function (err, has) {
+        size(hash, function (err, has) {
           if(has) {
             while(waiting[hash].length)
               waiting[hash].shift()(null, true)
@@ -225,6 +221,7 @@ module.exports = function (blobs, name) {
     }
   }
 }
+
 
 
 
