@@ -86,7 +86,6 @@ module.exports = function (createBlobStore, createAsync) {
     })
   })
 
-  return
   tape('want - has 2', function (t) {
     createAsync(function (async) {
       var alice = Blobs(createBlobStore('wh2-alice', async))
@@ -110,7 +109,6 @@ module.exports = function (createBlobStore, createAsync) {
       t.end()
     })
   })
-
 
   tape('want - want -has', function (t) {
     createAsync(function (async) {
@@ -297,6 +295,8 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
+
+
 
 
 
