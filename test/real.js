@@ -15,4 +15,6 @@ function test_create(name) {
 
 require('./simple')(test_create, require('./sync'))
 require('./integration')(test_create, require('./sync'))
+require('./legacy')(test_create, require('./sync'))
+
 
