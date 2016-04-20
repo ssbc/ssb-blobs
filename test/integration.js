@@ -1,38 +1,12 @@
-var Notify = require('pull-notify')
-var crypto = require('crypto')
 var tape = require('tape')
 var Blobs = require('../')
 var pull = require('pull-stream')
 var bitflipper = require('pull-bitflipper')
 var assert = require('assert')
 
-var LOGGING = process.env.DEBUG
-
-function createHash () {
-  var args = [].slice.call(arguments)
-  var o = {}
-  for(var i = 0; i < args.length; i+=2) o[args[i]] = args[i+1]
-  return o
-}
-
-//create random value that looks like a blob id.
-function rand() {
-  return '&'+crypto.randomBytes(32).toString('base64')+'.sha256'
-}
-
-function Fake(string, length) {
-  var b = new Buffer(length)
-  var n = Buffer.byteLength(string)
-  for(var i = 0; i < length; i += n)
-    b.write(string, i)
-  return b
-}
-
-function hash(buf) {
-  buf = 'string' == typeof buf ? new Buffer(buf) : buf
-  return '&'+crypto.createHash('sha256')
-            .update(buf).digest('base64')+'.sha256'
-}
+var u = require('./util')
+var Fake = u.fake
+var hash = u.hash
 
 module.exports = function (createBlobStore, createAsync) {
 
@@ -263,51 +237,9 @@ module.exports = function (createBlobStore, createAsync) {
     })
 
   })
-
-
-  tape('legacy', function (t) {
-    createAsync(function (async) {
-      //if a peer is using legacy mode
-      //then it won't use createWantStream
-      //instead it will just call has(blobIds)
-      //interpret that like receiving a want stream message {<id>: -1}
-      //also, if a peer doesn't have createWantStream
-      //call peer.has instead.
-
-      //okay... so currently, the client creates a duplex stream
-      //but then how does the server know that the client is legacy?
-      //(which would mean it doesn't call that method... just waiting
-      //for it not to call is a timeout, which is bad, non deterministic tests)
-
-      //SOLUTION: split the duplex into two source streams that hook up!
-      //each side calls the remote source, and returns the sink they have
-      //prepared!
-
-      async.done()
-    }, function (err) {
-      if(err) throw err
-      t.end()
-    })
-
-  })
-
 }
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

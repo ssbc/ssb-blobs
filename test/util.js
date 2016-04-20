@@ -1,0 +1,41 @@
+var pull = require('pull-stream')
+var crypto = require('crypto')
+
+var log = exports.log = function log (name) {
+  if(process.env.DEBUG)
+    return pull.through(function (e) {
+      console.log(name, e)
+    })
+  else
+    return pull.through()
+}
+
+exports.peers = function (nameA, a, nameB, b, async) {
+  var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
+  //this is just a hack to fake RPC. over rpc each method is called
+  //with the remote id in the current this context.
+  a._onConnect({
+    id: nameB, blobs:
+      {get:b.get, createWants: b.createWants.bind({id: nameA})}
+  }, nb+na)
+  b._onConnect({
+    id: nameA, blobs:
+      {get:a.get, createWants: a.createWants.bind({id: nameB})}
+  }, na+nb)
+}
+
+
+exports.hash = function (buf) {
+  buf = 'string' == typeof buf ? new Buffer(buf) : buf
+  return '&'+crypto.createHash('sha256')
+            .update(buf).digest('base64')+'.sha256'
+}
+
+exports.fake = function (string, length) {
+  var b = new Buffer(length)
+  var n = Buffer.byteLength(string)
+  for(var i = 0; i < length; i += n)
+    b.write(string, i)
+  return b
+}
+

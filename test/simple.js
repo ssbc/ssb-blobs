@@ -1,48 +1,11 @@
-var Notify = require('pull-notify')
-var crypto = require('crypto')
 var tape = require('tape')
 var Blobs = require('../')
 var pull = require('pull-stream')
-var bitflipper = require('pull-bitflipper')
 var assert = require('assert')
 
-var LOGGING = process.env.DEBUG
-
-function createHash () {
-  var args = [].slice.call(arguments)
-  var o = {}
-  for(var i = 0; i < args.length; i+=2) o[args[i]] = args[i+1]
-  return o
-}
-
-//create random value that looks like a blob id.
-function rand() {
-  return '&'+crypto.randomBytes(32).toString('base64')+'.sha256'
-}
-
-function Fake(string, length) {
-  var b = new Buffer(length)
-  var n = Buffer.byteLength(string)
-  for(var i = 0; i < length; i += n)
-    b.write(string, i)
-  return b
-}
-
-function hash(buf) {
-  buf = 'string' == typeof buf ? new Buffer(buf) : buf
-  return '&'+crypto.createHash('sha256')
-            .update(buf).digest('base64')+'.sha256'
-}
-
-function log (name) {
-  if(LOGGING)
-    return pull.through(function (e) {
-      console.log(name, e)
-    })
-  else
-    return pull.through()
-}
-
+var u = require('./util')
+var Fake = u.fake
+var hash = u.hash
 
 module.exports = function (createBlobStore, createAsync) {
 
@@ -106,7 +69,6 @@ module.exports = function (createBlobStore, createAsync) {
 
       pull(
         blobs.createWants.call({id: 'test'}),
-        log('out'),
         async.through(),
         pull.drain(function (_res) {
           if(c++) throw new Error('called twice')
@@ -153,13 +115,6 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
-
-
-
-
-
-
-
 
 
 
