@@ -58,7 +58,7 @@ module.exports = function (blobs, name) {
   }
 
   function listen (opts) {
-    if(false && opts && opts.long)
+    if(opts && opts.long)
       return changes.listen()
     else
       return pull(changes.listen(), pull.map(function (e) { return e.id }))
@@ -185,7 +185,14 @@ module.exports = function (blobs, name) {
 
   var self
   return self = {
-    has: blobs.has,
+    has: function (hash, cb) {
+      var a = Array.isArray(hash) ? hash : [hash]
+      var o = {}
+      a.forEach(function (h) { o[h] = -1 })
+      //since this is always "has" process will never use the second arg.
+      process(o, null, function () {})
+      return blobs.has.call(this, hash, cb)
+    },
     size: size,
     get: blobs.get,
     add: add,
@@ -223,13 +230,4 @@ module.exports = function (blobs, name) {
     }
   }
 }
-
-
-
-
-
-
-
-
-
 
