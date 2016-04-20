@@ -35,8 +35,40 @@ function noop () {}
 
 module.exports = function (blobs, name) {
 
-  var notify = Notify()
   var changes = Notify()
+
+  function add(id, cb) {
+    var size = 0
+    if('function' === typeof id)
+      cb = id, id = null
+    cb = cb || noop
+    function next (err, id) {
+      if(err) cb(err)
+      else {
+        changes({id: id, size: size})
+        cb(null, id) //also notify any listeners.
+      }
+    }
+    return pull(
+      pull.through(function (data) {
+        size += Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)
+      }),
+      id ? blobs.add(id, next) : blobs.add(next)
+    )
+  }
+
+  function listen (opts) {
+    if(false && opts && opts.long)
+      return changes.listen()
+    else
+      return pull(changes.listen(), pull.map(function (e) { return e.id }))
+  }
+
+  var size = single(blobs.size)
+
+  // --------
+
+  var notify = Notify()
 
   var peers = {}
   var want = {}, waiting = {}, getting = {}, available = {}, streams = {}
@@ -54,28 +86,6 @@ module.exports = function (blobs, name) {
       send = {}
       notify(_send)
     //})
-  }
-
-  function add(id, cb) {
-    var size = 0
-    if('function' === typeof id)
-      cb = id, id = null
-    console.log('ADD', id)
-    cb = cb || noop
-    function next (err, id) {
-      console.log('added', id)
-      if(err) cb(err)
-      else {
-        changes({id: id, size: size})
-        cb(null, id) //also notify any listeners.
-      }
-    }
-    return pull(
-      pull.through(function (data) {
-        size += Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)
-      }),
-      id ? blobs.add(id, next) : blobs.add(next)
-    )
   }
 
   function isAvailable(id) {
@@ -109,7 +119,6 @@ module.exports = function (blobs, name) {
     }
   }
 
-  var size = single(blobs.size)
 
   pull(
     changes.listen(),
@@ -133,12 +142,10 @@ module.exports = function (blobs, name) {
     for(var id in data) {
       if(isBlobId(id) && isInteger(data[id])) {
         if(data[id] <= 0) { //interpret as "WANT"
-          console.log('HAVE?', id, data[id])
           n++
           //check whether we already *HAVE* this file.
           //respond with it's size, if we do.
           size(id, function (err, size) {
-            console.log('Wants?', id, data[id], size)
             if(size) res[id] = size
             else wants(peer, id, data[id] - 1)
             next()
@@ -182,12 +189,7 @@ module.exports = function (blobs, name) {
     size: size,
     get: blobs.get,
     add: add,
-    changes: function (opts) {
-      if(false && opts && opts.long)
-        return changes.listen()
-      else
-        return pull(changes.listen(), pull.map(function (e) { return e.id }))
-    },
+    changes: listen,
     want: function (hash, cb) {
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
@@ -221,7 +223,6 @@ module.exports = function (blobs, name) {
     }
   }
 }
-
 
 
 
