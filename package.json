@@ -8,6 +8,7 @@
     "url": "git://github.com/dominictarr/ssb-blobs.git"
   },
   "dependencies": {
+    "cont": "^1.0.3",
     "pull-notify": "^0.1.0",
     "pull-stream": "^3.3.0",
     "ssb-ref": "^2.3.0"
