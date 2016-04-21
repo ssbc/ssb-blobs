@@ -1,4 +1,3 @@
-
 function isEmpty (o) {
   for(var k in o) return false
   return true
@@ -97,6 +96,7 @@ module.exports = function (blobs, name) {
   function get (peer, id, name) {
     if(getting[id]) return
     getting[id] = peer
+//    var source = peers[peer].blobs.get({id: id, max: 5*1024*1024})
     var source = peers[peer].blobs.get(id)
     pull(source, add(id, function (err, _id) {
       delete getting[id]
@@ -163,19 +163,48 @@ module.exports = function (blobs, name) {
     }
   }
 
+
+  function legacySync (peer) {
+    function hasLegacy (hashes) {
+      var ary = Object.keys(hashes).filter(function (k) {
+        return hashes[k] < 0
+      })
+      if(ary.length)
+      peer.blobs.size(ary, function (err, sizes) {
+        if(err) drain.abort(err) //abort this stream.
+        else sizes.forEach(function (size, i) {
+          if(size) has(peer, ary[i], size)
+        })
+      })
+    }
+
+    drain = pull.drain(hasLegacy)
+    pull(peer.blobs.changes(), pull.drain(function (hash) {
+      has(peer.id, hash, true)
+    }))
+    hasLegacy(want)
+
+    pull(notify.listen(), drain)
+  }
+
   function wantSink (peer) {
     if(!streams[peer.id])
       streams[peer.id] = notify.listen()
-
+    var modern = false
     return pull.drain(function (data) {
+        modern = true
         //respond with list of blobs you already have,
         process(data, peer.id, function (err, has_data) {
           //(if you have any)
           if(!isEmpty(has_data)) streams[peer.id].push(has_data)
         })
-      }, function (_) {
+      }, function (err) {
+        if(err && err.name === 'TypeError' && !modern) {
+          streams[peer.id] = false
+          legacySync(peer)
+        }
         //handle error and fallback to legacy mode.
-        if(peers[peer.id] == peer) {
+        else if(peers[peer.id] == peer) {
           delete peers[peer.id]
           delete available[peer.id]
           delete streams[peer.id]
@@ -224,10 +253,10 @@ module.exports = function (blobs, name) {
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
-      pull(other.blobs.createWants(), pull.through(function (d) {
-        console.log(name, d)
-      }), wantSink(other))
+      pull(other.blobs.createWants(), wantSink(other))
     }
   }
 }
+
+
 
