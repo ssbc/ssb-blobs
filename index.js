@@ -9,6 +9,7 @@ exports.manifest = {
   has: 'async',
   size: 'async',
   meta: 'async',
+  want: 'async',
   changes: 'source',
   createWants: 'source'
 }
@@ -25,5 +26,6 @@ exports.init = function (sbot, config) {
   var blobs = create(path.join(config.path, 'blobs'))
   return Inject(blobs, sbot.id)
 }
+
 
 
