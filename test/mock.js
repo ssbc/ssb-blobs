@@ -1,5 +1,6 @@
 var pull = require('pull-stream')
 var crypto = require('crypto')
+var cont = require('cont')
 
 function hash(buf) {
   buf = 'string' == typeof buf ? new Buffer(buf) : buf
@@ -17,20 +18,34 @@ module.exports = function MockBlobStore (name, async) {
     return h
   }
 
+  function all(fn) {
+    return function (value) {
+      return Array.isArray(value) ? cont.para(value.map(function (e) { return fn(e) })) : fn(value)
+    }
+  }
+
+  function toAsync (fn, name) {
+    return async(function (value, cb) {
+      fn(value)(function (err, value) {
+        async(cb, name+'-cb')(err, value)
+      })
+    }, name)
+  }
+
   return {
     store: store,
-
     get: function (blobId) {
       if(!store[blobId])
         return pull(pull.error(new Error('no blob:'+blobId)), async.through('get-error'))
       return pull(pull.values([store[blobId]]), async.through('get'))
     },
-    has: async(function (blobId, cb) {
-      async(cb, 'has-cb')(null, store[blobId] ? true : false)
-    }, 'has'),
-    size: async(function (blobId, cb) {
-      async(cb, 'size-cb')(null, store[blobId] ? store[blobId].length : null)
-    }, 'size'),
+    has: toAsync(all(cont(function (blobId, cb) {
+      cb(null, store[blobId] ? true : false)
+    })), 'has'),
+    size: toAsync(all(cont(function (blobId, cb) {
+      console.log(blobId, cb)
+      cb(null, store[blobId] ? store[blobId].length : null)
+    })), 'size'),
     add: function (_hash, cb) {
       if('function' == typeof _hash)
         cb = _hash, _hash = null
@@ -43,4 +58,5 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
+
 

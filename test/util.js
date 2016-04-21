@@ -10,18 +10,19 @@ var log = exports.log = function log (name) {
     return pull.through()
 }
 
+function bindAll(obj, context) {
+  var o = {}
+  for(var k in obj)
+    o[k] = obj[k].bind(context)
+  return o
+}
+
 exports.peers = function (nameA, a, nameB, b, async) {
   var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
   //this is just a hack to fake RPC. over rpc each method is called
   //with the remote id in the current this context.
-  a._onConnect({
-    id: nameB, blobs:
-      {get:b.get, createWants: b.createWants.bind({id: nameA})}
-  }, nb+na)
-  b._onConnect({
-    id: nameA, blobs:
-      {get:a.get, createWants: a.createWants.bind({id: nameB})}
-  }, na+nb)
+  a._onConnect({id: nameB, blobs: bindAll(b, {id: nameA})}, nb+na)
+  b._onConnect({id: nameA, blobs: bindAll(a, {id: nameB})}, na+nb)
 }
 
 
@@ -38,4 +39,6 @@ exports.fake = function (string, length) {
     b.write(string, i)
   return b
 }
+
+
 

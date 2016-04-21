@@ -67,9 +67,53 @@ module.exports = function (createBlobStore, createAsync) {
 
   })
 
+  tape('modern calls legacy', function (t) {
+    createAsync(function (async) {
+
+      var modern = Blobs(createBlobStore('legacy', async), 'modern')
+      var legacy = Blobs(createBlobStore('legacy', async), 'legacy')
+
+      var size = legacy.size
+      legacy.size = function (hashes, cb) {
+        console.log("CALLED_SIZE", hashes)
+        size.call(this, hashes, function (err, value) {
+          console.log('SIZES', err, value)
+          cb(err, value)
+        })
+      }
+
+      legacy.createWants = function () {
+        var err = new Error('cannot call apply of null')
+        err.name = 'TypeError'
+        return pull.error(err)
+      }
+
+      u.peers('modern', modern, 'legacy', legacy)
+
+      var blob = Fake('bar', 101)
+      var h = hash(blob)
+
+      modern.want(h, function (err, has) {
+        async.done()
+      })
+
+      pull(pull.once(blob), legacy.add(function (err, _h) {
+        assert.equal(_h, h)
+        console.log('ADDED', _h)
+      }))
+
+    }, function (err) {
+      console.log(err)
+      if(err) throw err
+      t.end()
+    })
+  })
+
 }
 
 if(!module.parent)
     module.exports(require('./mock'), require('./sync'))
+
+
 
 
