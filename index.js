@@ -1,22 +1,7 @@
+'use strict'
 function isEmpty (o) {
   for(var k in o) return false
   return true
-}
-
-function single (fn) {
-  var waiting = {}
-  return function (value, cb) {
-    if(!waiting[value]) {
-      waiting[value] = [cb]
-      fn(value, function done (err, result) {
-        var cbs = waiting[value]
-        delete waiting[value]
-        while(cbs.length) cbs.shift()(err, result)
-      })
-    }
-    else
-      waiting[value].push(cb)
-  }
 }
 
 function isInteger (i) {
@@ -33,39 +18,6 @@ var MAX_SIZE = 5*MB
 function noop () {}
 
 module.exports = function (blobs, name) {
-
-  var changes = Notify()
-
-  function add(id, cb) {
-    var size = 0
-    if('function' === typeof id)
-      cb = id, id = null
-    cb = cb || noop
-    function next (err, id) {
-      if(err) cb(err)
-      else {
-        changes({id: id, size: size})
-        cb(null, id) //also notify any listeners.
-      }
-    }
-    return pull(
-      pull.through(function (data) {
-        size += Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)
-      }),
-      id ? blobs.add(id, next) : blobs.add(next)
-    )
-  }
-
-  function listen (opts) {
-    if(opts && opts.long)
-      return changes.listen()
-    else
-      return pull(changes.listen(), pull.map(function (e) { return e.id }))
-  }
-
-  var size = single(blobs.size)
-
-  // --------
 
   var notify = Notify()
 
@@ -98,7 +50,7 @@ module.exports = function (blobs, name) {
     getting[id] = peer
 //    var source = peers[peer].blobs.get({id: id, max: 5*1024*1024})
     var source = peers[peer].blobs.get(id)
-    pull(source, add(id, function (err, _id) {
+    pull(source, blobs.add(id, function (err, _id) {
       delete getting[id]
       if(err) {
         delete available[peer][id]
@@ -119,9 +71,8 @@ module.exports = function (blobs, name) {
     }
   }
 
-
   pull(
-    changes.listen(),
+    blobs.ls({old: false, meta: true}),
     pull.drain(function (data) {
       queue(data.id, data.size)
       delete want[data.id]
@@ -145,7 +96,7 @@ module.exports = function (blobs, name) {
           n++
           //check whether we already *HAVE* this file.
           //respond with it's size, if we do.
-          size(id, function (err, size) {
+          blobs.size(id, function (err, size) { //XXX
             if(size) res[id] = size
             else wants(peer, id, data[id] - 1)
             next()
@@ -163,19 +114,19 @@ module.exports = function (blobs, name) {
     }
   }
 
-
   function legacySync (peer) {
+    var drain
     function hasLegacy (hashes) {
       var ary = Object.keys(hashes).filter(function (k) {
         return hashes[k] < 0
       })
       if(ary.length)
-      peer.blobs.size(ary, function (err, sizes) {
-        if(err) drain.abort(err) //abort this stream.
-        else sizes.forEach(function (size, i) {
-          if(size) has(peer, ary[i], size)
+        peer.blobs.size(ary, function (err, sizes) {
+          if(err) drain.abort(err) //abort this stream.
+          else sizes.forEach(function (size, i) {
+            if(size) has(peer, ary[i], size)
+          })
         })
-      })
     }
 
     drain = pull.drain(hasLegacy)
@@ -184,6 +135,7 @@ module.exports = function (blobs, name) {
     }))
     hasLegacy(want)
 
+    //a stream of hashes
     pull(notify.listen(), drain)
   }
 
@@ -222,10 +174,12 @@ module.exports = function (blobs, name) {
       process(o, null, function () {})
       return blobs.has.call(this, hash, cb)
     },
-    size: size,
+    size: blobs.size,
     get: blobs.get,
-    add: add,
-    changes: listen,
+    add: blobs.add,
+    changes: function () {
+      return blobs.ls({old: false, meta: false})
+    },
     want: function (hash, cb) {
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
@@ -236,7 +190,7 @@ module.exports = function (blobs, name) {
         waiting[hash].push(cb)
       else {
         waiting[hash] = [cb]
-        size(hash, function (err, has) {
+        blobs.size(hash, function (err, has) {
           if(has) {
             while(waiting[hash].length)
               waiting[hash].shift()(null, true)
@@ -257,6 +211,4 @@ module.exports = function (blobs, name) {
     }
   }
 }
-
-
 
