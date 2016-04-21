@@ -112,8 +112,4 @@ module.exports = function (createBlobStore, createAsync) {
 }
 
 if(!module.parent)
-    module.exports(require('./mock'), require('./sync'))
-
-
-
-
+  module.exports(require('./mock'), require('./util').sync)

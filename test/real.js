@@ -12,9 +12,11 @@ function test_create(name) {
   return create(dir)
 }
 
-
-require('./simple')(test_create, require('./sync'))
-require('./integration')(test_create, require('./sync'))
-require('./legacy')(test_create, require('./sync'))
+//since we are using the real FS this time,
+//we don't need to apply fake async.
+var sync = require('./util').sync
+require('./simple')(test_create, sync)
+require('./integration')(test_create, sync)
+require('./legacy')(test_create, sync)
 
 
