@@ -63,7 +63,6 @@ module.exports = function MockBlobStore (name, async) {
       cb(null, store[blobId] ? true : false)
     })), 'has')),
     size: single(toAsync(all(cont(function (blobId, cb) {
-      console.log(blobId, cb)
       cb(null, store[blobId] ? store[blobId].length : null)
     })), 'size')),
     ls: function (opts) {
@@ -95,5 +94,4 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
-
 

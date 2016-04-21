@@ -1,5 +1,5 @@
 var tape = require('tape')
-var Blobs = require('../')
+var Blobs = require('../inject')
 var pull = require('pull-stream')
 var assert = require('assert')
 

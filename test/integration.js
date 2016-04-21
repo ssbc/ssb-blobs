@@ -1,5 +1,5 @@
 var tape = require('tape')
-var Blobs = require('../')
+var Blobs = require('../inject')
 var pull = require('pull-stream')
 var bitflipper = require('pull-bitflipper')
 var assert = require('assert')
@@ -241,3 +241,4 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
   module.exports(require('./mock'), require('./util').sync)
+
