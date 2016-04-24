@@ -127,10 +127,10 @@ module.exports = function inject (blobs, name) {
         return hashes[k] < 0
       })
       if(ary.length)
-        peer.blobs.size(ary, function (err, sizes) {
+        peer.blobs.has(ary, function (err, haves) {
           if(err) drain.abort(err) //abort this stream.
-          else sizes.forEach(function (size, i) {
-            if(size) has(peer, ary[i], size)
+          else haves.forEach(function (have, i) {
+            if(have) has(peer, ary[i], have)
           })
         })
     }
