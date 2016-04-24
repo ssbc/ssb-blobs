@@ -23,8 +23,13 @@ exports.permissions = {
 }
 
 exports.init = function (sbot, config) {
-  var blobs = create(path.join(config.path, 'blobs'))
-  return Inject(blobs, sbot.id)
+  var mb = create(path.join(config.path, 'blobs'))
+  var blobs = Inject(mb, sbot.id)
+
+  sbot.on('rpc:connect', function (rpc) {
+    blobs._onConnect(rpc, rpc.id)
+  })
+  return blobs
 }
 
 
