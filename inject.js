@@ -161,7 +161,7 @@ module.exports = function inject (blobs, name) {
           if(!isEmpty(has_data)) streams[peer.id].push(has_data)
         })
       }, function (err) {
-        if(err && err.name === 'TypeError' && !modern) {
+        if(err && !modern) {
           streams[peer.id] = false
           legacySync(peer)
         }
