@@ -114,6 +114,12 @@ module.exports = function inject (blobs, name) {
     }
   }
 
+  function dead (peer_id) {
+    delete peers[peer_id]
+    delete available[peer_id]
+    delete streams[peer_id]
+  }
+
   function legacySync (peer) {
     var drain
     function hasLegacy (hashes) {
@@ -129,10 +135,14 @@ module.exports = function inject (blobs, name) {
         })
     }
 
-    drain = pull.drain(hasLegacy)
+    function notPeer (err) {
+      if(err) dead(peer.id)
+    }
+
+    drain = pull.drain(hasLegacy, notPeer)
     pull(peer.blobs.changes(), pull.drain(function (hash) {
       has(peer.id, hash, true)
-    }))
+    }, notPeer))
     hasLegacy(want)
 
     //a stream of hashes
