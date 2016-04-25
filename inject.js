@@ -41,12 +41,13 @@ module.exports = function inject (blobs, name) {
 
   function isAvailable(id) {
     for(var peer in peers)
-      if(available[peer] && available[peer][id])
+      if(available[peer] && available[peer][id] && peers[peer])
         return peer
   }
 
   function get (peer, id, name) {
-    if(getting[id]) return
+    if(getting[id] || !peers[peer]) return
+
     getting[id] = peer
 //    var source = peers[peer].blobs.get({id: id, max: 5*1024*1024})
     var source = peers[peer].blobs.get(id)
@@ -82,10 +83,11 @@ module.exports = function inject (blobs, name) {
     })
   )
 
-  function has(peer, id, size) {
-    available[peer] = available[peer] || {}
-    available[peer][id] = size
-    if(want[id] && !getting[id] && size < MAX_SIZE) get(peer, id)
+  function has(peer_id, id, size) {
+    if('string' !== typeof peer_id) throw new Error('peer must be string id')
+    available[peer_id] = available[peer_id] || {}
+    available[peer_id][id] = size
+    if(want[id] && !getting[id] && size < MAX_SIZE) get(peer_id, id)
   }
 
   function process (data, peer, cb) {
@@ -130,7 +132,7 @@ module.exports = function inject (blobs, name) {
         peer.blobs.has(ary, function (err, haves) {
           if(err) drain.abort(err) //abort this stream.
           else haves.forEach(function (have, i) {
-            if(have) has(peer, ary[i], have)
+            if(have) has(peer.id, ary[i], have)
           })
         })
     }
