@@ -54,7 +54,7 @@ module.exports = function inject (blobs, name) {
     pull(source, blobs.add(id, function (err, _id) {
       delete getting[id]
       if(err) {
-        delete available[peer][id]
+        if(available[peer]) delete available[peer][id]
         //check if another peer has this.
         //if so get it from them.
         if(peer = isAvailable(id)) get(peer, id, name)
@@ -223,4 +223,5 @@ module.exports = function inject (blobs, name) {
     }
   }
 }
+
 
