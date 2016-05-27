@@ -17,12 +17,21 @@ var MAX_SIZE = 5*MB
 
 function noop () {}
 
+function clone (obj) {
+  var o = {}
+  for(var k in obj)
+    o[k] = obj[k]
+  return o
+}
+
 module.exports = function inject (blobs, name) {
 
   var notify = Notify()
+  var pushed = Notify()
 
   var peers = {}
-  var want = {}, waiting = {}, getting = {}, available = {}, streams = {}
+  var want = {}, push = {}, waiting = {}, getting = {}
+  var available = {}, streams = {}
   var send = {}, timer
 
   function queue (hash, hops) {
@@ -49,6 +58,7 @@ module.exports = function inject (blobs, name) {
     if(getting[id] || !peers[peer]) return
 
     getting[id] = peer
+    //XXX REINSTATE MAXIMUM SIZE BLOBS!
 //    var source = peers[peer].blobs.get({id: id, max: 5*1024*1024})
     var source = peers[peer].blobs.get(id)
     pull(source, blobs.add(id, function (err, _id) {
@@ -87,6 +97,17 @@ module.exports = function inject (blobs, name) {
     if('string' !== typeof peer_id) throw new Error('peer must be string id')
     available[peer_id] = available[peer_id] || {}
     available[peer_id][id] = size
+    //XXX if we are broadcasting this blob,
+    //mark this peer has it.
+    //if N peers have it, we can stop broadcasting.
+    if(push[id]) {
+      push[id][peer_id] = size
+      if(Object.keys(push[id]).length >= MIN_PUSH_PEERS) {
+        var data = {key: id, peers: push[id]}
+        //XXX: CLEAR THIS JOB FROM THE DURABLE QUEUE!
+        delete push[id]; pushed(data)
+      }
+    }
     if(want[id] && !getting[id] && size < MAX_SIZE) get(peer_id, id)
   }
 
@@ -123,14 +144,15 @@ module.exports = function inject (blobs, name) {
   }
 
   function legacySync (peer) {
-    var drain
+    var drain //we need to keep a reference to drain
+              //so we can abort it when we get an error.
     function hasLegacy (hashes) {
       var ary = Object.keys(hashes).filter(function (k) {
         return hashes[k] < 0
       })
       if(ary.length)
         peer.blobs.has(ary, function (err, haves) {
-          if(err) drain.abort(err) //abort this stream.
+          if(err) drain.abort(err) //ERROR: abort this stream.
           else haves.forEach(function (have, i) {
             if(have) has(peer.id, ary[i], have)
           })
@@ -141,19 +163,36 @@ module.exports = function inject (blobs, name) {
       if(err) dead(peer.id)
     }
 
-    drain = pull.drain(hasLegacy, notPeer)
-    pull(peer.blobs.changes(), pull.drain(function (hash) {
+    drain = pull.drain(function (hash) {
       has(peer.id, hash, true)
-    }, notPeer))
+    }, notPeer)
+
+
+    pull(peer.blobs.changes(), drain)
+
     hasLegacy(want)
 
     //a stream of hashes
-    pull(notify.listen(), drain)
+    pull(notify.listen(), pull.drain(hasLegacy, notPeer))
+  }
+
+  function createWantStream (id) {
+    if(!streams[id]) {
+      console.log("WANT", want)
+      streams[id] = notify.listen()
+      streams[id].push(clone(want))
+      return streams[id]
+    }
+    return streams[id]
   }
 
   function wantSink (peer) {
-    if(!streams[peer.id])
-      streams[peer.id] = notify.listen()
+    createWantStream(peer.id) //set streams[peer.id]
+//    if(!streams[peer.id]) {
+//      console.log('CREATE STERAM')
+//      streams[peer.id] = notify.listen()
+//    }
+
     var modern = false
     return pull.drain(function (data) {
         modern = true
@@ -212,16 +251,28 @@ module.exports = function inject (blobs, name) {
       }
       if(id) return get(id, hash)
     },
+    push: function (id) {
+      push[id] = push[id] || {}
+    },
+    pushed: function () {
+      return pushed.listen()
+    },
     createWants: function () {
-      return streams[this.id] || (streams[this.id] = notify.listen())
+      return createWantStream(this.id)
+      var s = streams[this.id] || (streams[this.id] = notify.listen())
+//      s.push(want)
+      return s
     },
     //private api. used for testing. not exposed over rpc.
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
+      //sending of your wants starts when you we know
+      //that they are not legacy style.
+      //process is called when wantSync
+      //doesn't immediately get an error.
       pull(other.blobs.createWants(), wantSink(other))
     }
   }
 }
-
 
