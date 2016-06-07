@@ -27,7 +27,7 @@ module.exports = function (createBlobStore, createAsync) {
       first[h] = -2
       var second = {}
       second[h] = blob.length
-      var expected = [first, second]
+      var expected = [{}, first, second]
 
       //the most important thing is that a modern blobs
       //plugin emits 2nd hand hops when someone calls has(hash)
@@ -41,11 +41,10 @@ module.exports = function (createBlobStore, createAsync) {
       )
 
       pull(modern.changes(), pull.drain(function (hash) {
-        console.log('changes', hash)
         assert.equal(hash, h)
         pull(modern.get(hash), pull.collect(function (err, ary) {
           assert.deepEqual(Buffer.concat(ary), blob)
-          assert.equal(n, 2)
+          assert.equal(n, 3)
           async.done()
         }))
       }))
@@ -53,10 +52,8 @@ module.exports = function (createBlobStore, createAsync) {
       modern.has.call({id: 'other'}, h, function (err, value) {
         if(err) throw err
         t.equal(value, false)
-        console.log('has', err, value)
         pull(pull.once(blob), modern.add(function (err, hash) {
           if(err) throw err
-          console.log('ADDED', hash)
         }))
       })
 
@@ -113,3 +110,5 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
   module.exports(require('./mock'), require('./util').sync)
+
+

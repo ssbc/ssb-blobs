@@ -38,11 +38,8 @@ module.exports = function (createBlobStore, createAsync) {
           pull.take(2),
           pull.collect(function (err, _res) {
             if(err) throw err
-            //requests 
             console.log("_RES", _res)
             assert.deepEqual(_res, [{}, res])
-        //    assert.deepEqual(_res, {})
-            //assert.deepEqual(_res, res)
             async.done()
           })
         )

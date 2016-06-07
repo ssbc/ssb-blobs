@@ -20,20 +20,6 @@ module.exports = function (createBlobStore, createAsync) {
       return pull.through()
   }
 
-  function peers (nameA, a, nameB, b, async) {
-    var na = nameA[0].toUpperCase(), nb = nameB[0].toUpperCase()
-    //this is just a hack to fake RPC. over rpc each method is called
-    //with the remote id in the current this context.
-    a._onConnect({
-      id: nameB, blobs:
-        {get:b.get, createWants: b.createWants.bind({id: nameA})}
-    }, nb+na)
-    b._onConnect({
-      id: nameA, blobs:
-        {get:a.get, createWants: a.createWants.bind({id: nameB})}
-    }, na+nb)
-  }
-
   tape('want - has', function (t) {
     createAsync(function (async) {
       var alice = Blobs(createBlobStore('wh-alice', async))
@@ -41,7 +27,7 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('foobar', 64)
       var h = hash(blob)
 
-      peers('alice', alice, 'bob', bob)//, async)
+      u.peers('alice', alice, 'bob', bob)//, async)
 
       alice.want(h, function (err, has) {
         if(err) throw err
@@ -59,7 +45,7 @@ module.exports = function (createBlobStore, createAsync) {
       t.end()
     })
   })
-
+  return
   tape('want - has 2', function (t) {
     createAsync(function (async) {
       var alice = Blobs(createBlobStore('wh2-alice', async))
@@ -67,7 +53,7 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('foobar', 64)
       var h = hash(blob)
 
-      peers('bob', bob, 'alice', alice)
+      u.peers('bob', bob, 'alice', alice)
       pull(pull.once(blob), bob.add())
 
       alice.want(h, function (err, has) {
@@ -93,8 +79,8 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('baz', 64)
       var h = hash(blob)
 
-      peers('alice', alice, 'bob', bob)
-      peers('bob', bob, 'carol', carol)
+      u.peers('alice', alice, 'bob', bob)
+      u.peers('bob', bob, 'carol', carol)
 
       alice.want(h, function (err, has) {
         if(err) throw err
@@ -124,8 +110,8 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('baz', 64)
       var h = hash(blob)
 
-      peers('alice', alice, 'bob', bob)
-      peers('bob', bob, 'carol', carol)
+      u.peers('alice', alice, 'bob', bob)
+      u.peers('bob', bob, 'carol', carol)
 
       pull(
         carol.changes(),
@@ -154,8 +140,8 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('baz', 64)
       var h = hash(blob)
 
-      peers('alice', alice, 'bob', bob)
-      peers('bob', bob, 'carol', carol)
+      u.peers('alice', alice, 'bob', bob)
+      u.peers('bob', bob, 'carol', carol)
 
       pull(
         bob.changes(),
@@ -191,8 +177,8 @@ module.exports = function (createBlobStore, createAsync) {
       var blob = Fake('baz', 64)
       var h = hash(blob)
 
-      peers('alice', alice, 'bob', bob)
-      peers('bob', bob, 'carol', carol)
+      u.peers('alice', alice, 'bob', bob)
+      u.peers('bob', bob, 'carol', carol)
 
       pull(
         bob.changes(),
@@ -219,10 +205,10 @@ module.exports = function (createBlobStore, createAsync) {
       var bob   = Blobs(createBlobStore('cycle-bob', async), 'bob')
       var carol = Blobs(createBlobStore('cycle-carol', async), 'carol')
       var dan   = Blobs(createBlobStore('cycle-dan', async), 'dan')
-      peers('alice', alice, 'bob', bob)
-      peers('bob', bob, 'carol', carol)
-      peers('carol', carol, 'dan', dan)
-      peers('dan', dan, 'alice', alice)
+      u.peers('alice', alice, 'bob', bob)
+      u.peers('bob', bob, 'carol', carol)
+      u.peers('carol', carol, 'dan', dan)
+      u.peers('dan', dan, 'alice', alice)
 
       var blob = Fake('gurg', 64)
       var h = hash(blob)
@@ -241,4 +227,6 @@ module.exports = function (createBlobStore, createAsync) {
 
 if(!module.parent)
   module.exports(require('./mock'), require('./util').sync)
+
+
 

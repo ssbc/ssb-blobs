@@ -85,13 +85,16 @@ module.exports = function MockBlobStore (name, async) {
         var h = add(data, _hash)
         if(!h) cb(new Error('wrong hash'))
         else {
-          console.log('ADDED', name,
-            notify({id: h, size: data.length, ts: Date.now()})
-          )
+          notify({id: h, size: data.length, ts: Date.now()})
           cb(null, h)
         }
       }, 'add-cb')))
     }
   }
 }
+
+
+
+
+
 
