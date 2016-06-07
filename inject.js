@@ -178,7 +178,6 @@ module.exports = function inject (blobs, name) {
 
   function createWantStream (id) {
     if(!streams[id]) {
-      console.log("WANT", want)
       streams[id] = notify.listen()
       streams[id].push(clone(want))
       return streams[id]
@@ -188,10 +187,6 @@ module.exports = function inject (blobs, name) {
 
   function wantSink (peer) {
     createWantStream(peer.id) //set streams[peer.id]
-//    if(!streams[peer.id]) {
-//      console.log('CREATE STERAM')
-//      streams[peer.id] = notify.listen()
-//    }
 
     var modern = false
     return pull.drain(function (data) {
@@ -218,12 +213,21 @@ module.exports = function inject (blobs, name) {
   var self
   return self = {
     has: function (hash, cb) {
+      if(this.id === name) // a local call
+        return blobs.has.call(this, hash, cb)
+
+      //ELSE, interpret remote calls to has as a WANT request.
+      //handling this by calling process (which calls size())
+      //avoids a race condition in the tests.
+      //(and avoids doubling the number of calls)
       var a = Array.isArray(hash) ? hash : [hash]
       var o = {}
       a.forEach(function (h) { o[h] = -1 })
       //since this is always "has" process will never use the second arg.
-      process(o, null, function () {})
-      return blobs.has.call(this, hash, cb)
+      process(o, null, function (err, res) {
+        var a = []; for(var k in o) a.push(res[k] > 0)
+        cb(null, Array.isArray(hash) ? a : a[0])
+      })
     },
     size: blobs.size,
     get: blobs.get,
