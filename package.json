@@ -1,7 +1,7 @@
 {
   "name": "ssb-blobs",
   "description": "blobs and blob replication for ssb",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "homepage": "https://github.com/dominictarr/ssb-blobs",
   "repository": {
     "type": "git",
@@ -30,6 +30,3 @@
   "author": "Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)",
   "license": "MIT"
 }
-
-
-
