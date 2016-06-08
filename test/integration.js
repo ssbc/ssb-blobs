@@ -46,7 +46,7 @@ module.exports = function (createBlobs, createAsync) {
       t.end()
     })
   })
-  return
+
   tape('want - has 2', function (t) {
     createAsync(function (async) {
       var alice = createBlobs('alice', async)
@@ -228,5 +228,6 @@ module.exports = function (createBlobs, createAsync) {
 
 if(!module.parent)
   u.tests(module.exports)
+
 
 
