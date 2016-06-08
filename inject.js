@@ -40,11 +40,9 @@ module.exports = function inject (blobs, set, name) {
       delete want[hash]
 
     send[hash] = hops
-    //setImmediate(function () {
-      var _send = send
-      send = {}
-      notify(_send)
-    //})
+    var _send = send;
+    send = {}
+    notify(_send)
   }
 
   function isAvailable(id) {
@@ -96,14 +94,13 @@ module.exports = function inject (blobs, set, name) {
     if('string' !== typeof peer_id) throw new Error('peer must be string id')
     available[peer_id] = available[peer_id] || {}
     available[peer_id][id] = size
-    //XXX if we are broadcasting this blob,
+    //if we are broadcasting this blob,
     //mark this peer has it.
     //if N peers have it, we can stop broadcasting.
     if(push[id]) {
       push[id][peer_id] = size
       if(Object.keys(push[id]).length >= MIN_PUSH_PEERS) {
         var data = {key: id, peers: push[id]}
-        //XXX: CLEAR THIS JOB FROM THE DURABLE QUEUE!
         set.remove(id)
         delete push[id]; pushed(data)
       }
@@ -209,6 +206,9 @@ module.exports = function inject (blobs, set, name) {
           streams[peer.id] = false
           legacySync(peer)
         }
+        //if can handle unpeer another way,
+        //then can refactor legacy handling out of sight.
+
         //handle error and fallback to legacy mode.
         else if(peers[peer.id] == peer) {
           delete peers[peer.id]
@@ -293,5 +293,4 @@ module.exports = function inject (blobs, set, name) {
     }
   }
 }
-
 
