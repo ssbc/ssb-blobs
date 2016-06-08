@@ -9,7 +9,9 @@
   },
   "dependencies": {
     "cont": "^1.0.3",
+    "level": "^1.4.0",
     "multiblob": "^1.10.0",
+    "pull-level": "^1.5.2",
     "pull-notify": "^0.1.0",
     "pull-stream": "^3.3.0",
     "ssb-ref": "^2.3.0"
@@ -28,3 +30,6 @@
   "author": "Dominic Tarr <dominic.tarr@gmail.com> (http://dominictarr.com)",
   "license": "MIT"
 }
+
+
+
