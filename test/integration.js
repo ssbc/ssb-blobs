@@ -8,7 +8,7 @@ var u = require('./util')
 var Fake = u.fake
 var hash = u.hash
 
-module.exports = function (createBlobStore, createAsync) {
+module.exports = function (createBlobs, createAsync) {
 
 
   function log (name) {
@@ -22,8 +22,8 @@ module.exports = function (createBlobStore, createAsync) {
 
   tape('want - has', function (t) {
     createAsync(function (async) {
-      var alice = Blobs(createBlobStore('wh-alice', async))
-      var bob   = Blobs(createBlobStore('wh-bob', async))
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
       var blob = Fake('foobar', 64)
       var h = hash(blob)
 
@@ -31,8 +31,9 @@ module.exports = function (createBlobStore, createAsync) {
 
       alice.want(h, function (err, has) {
         if(err) throw err
-        console.log('ALICE has', h)
+        console.log('ALICE has?', h, has)
         alice.has(h, function (err, has) {
+          console.log('ALICE has!', h, has)
           if(err) throw err
           assert.ok(has)
           async.done()
@@ -48,8 +49,8 @@ module.exports = function (createBlobStore, createAsync) {
   return
   tape('want - has 2', function (t) {
     createAsync(function (async) {
-      var alice = Blobs(createBlobStore('wh2-alice', async))
-      var bob   = Blobs(createBlobStore('wh2-bob', async))
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
       var blob = Fake('foobar', 64)
       var h = hash(blob)
 
@@ -72,9 +73,9 @@ module.exports = function (createBlobStore, createAsync) {
 
   tape('want - want -has', function (t) {
     createAsync(function (async) {
-      var alice = Blobs(createBlobStore('wwh-alice', async))
-      var bob   = Blobs(createBlobStore('wwh-bob', async))
-      var carol = Blobs(createBlobStore('wwh-carol', async))
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
+      var carol = createBlobs('carol', async)
 
       var blob = Fake('baz', 64)
       var h = hash(blob)
@@ -103,9 +104,9 @@ module.exports = function (createBlobStore, createAsync) {
     createAsync(function (async) {
       if(Array.isArray(process._events['exit']))
         console.log(process._events['exit'].reverse())
-      var alice = Blobs(createBlobStore('peer-alice', async), 'alice')
-      var bob   = Blobs(createBlobStore('peer-bob', async), 'bob')
-      var carol = Blobs(createBlobStore('peer-carol', async), 'carol')
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
+      var carol = createBlobs('carol', async)
 
       var blob = Fake('baz', 64)
       var h = hash(blob)
@@ -133,9 +134,9 @@ module.exports = function (createBlobStore, createAsync) {
   tape('triangle', function (t) {
     createAsync(function (async) {
       var n = 0
-      var alice = Blobs(createBlobStore('triangle-alice', async), 'alice')
-      var bob   = Blobs(createBlobStore('triangle-bob', async), 'bob')
-      var carol = Blobs(createBlobStore('triangle-carol', async), 'carol')
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
+      var carol = createBlobs('carol', async)
 
       var blob = Fake('baz', 64)
       var h = hash(blob)
@@ -164,9 +165,9 @@ module.exports = function (createBlobStore, createAsync) {
   tape('corrupt', function (t) {
     createAsync(function (async) {
       var n = 0
-      var alice = Blobs(createBlobStore('corrupt-alice', async), 'alice')
-      var bob   = Blobs(createBlobStore('corrupt-bob', async), 'bob')
-      var carol = Blobs(createBlobStore('corrupt-carol', async), 'carol')
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
+      var carol = createBlobs('carol', async)
 
       //everything that comes from bob is corrupt
       var get = alice.get
@@ -201,10 +202,10 @@ module.exports = function (createBlobStore, createAsync) {
   tape('cycle', function (t) {
     createAsync(function (async) {
       var n = 0
-      var alice = Blobs(createBlobStore('cycle-alice', async), 'alice')
-      var bob   = Blobs(createBlobStore('cycle-bob', async), 'bob')
-      var carol = Blobs(createBlobStore('cycle-carol', async), 'carol')
-      var dan   = Blobs(createBlobStore('cycle-dan', async), 'dan')
+      var alice = createBlobs('alice', async)
+      var bob   = createBlobs('bob', async)
+      var carol = createBlobs('carol', async)
+      var dan   = createBlobs('dan', async)
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
       u.peers('carol', carol, 'dan', dan)
@@ -226,7 +227,8 @@ module.exports = function (createBlobStore, createAsync) {
 }
 
 if(!module.parent)
-  module.exports(require('./mock'), require('./util').sync)
-
+  module.exports(function (name, async) {
+    return require('../inject')(require('./mock')(name, async), name)
+  }, require('./util').sync)
 
 

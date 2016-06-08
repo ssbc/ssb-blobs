@@ -25,7 +25,7 @@ function clone (obj) {
 }
 
 module.exports = function inject (blobs, name) {
-
+  console.log(blobs, name)
   var notify = Notify()
   var pushed = Notify()
 
@@ -212,10 +212,10 @@ module.exports = function inject (blobs, name) {
 
   var self
   return self = {
+    //id: name,
     has: function (hash, cb) {
-      if(this.id === name) // a local call
+      if(this === self) // a local call
         return blobs.has.call(this, hash, cb)
-
       //ELSE, interpret remote calls to has as a WANT request.
       //handling this by calling process (which calls size())
       //avoids a race condition in the tests.
@@ -279,4 +279,7 @@ module.exports = function inject (blobs, name) {
     }
   }
 }
+
+
+
 

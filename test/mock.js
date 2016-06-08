@@ -60,6 +60,7 @@ module.exports = function MockBlobStore (name, async) {
       return pull(pull.values([store[blobId]]), async.through('get'))
     },
     has: single(toAsync(all(cont(function (blobId, cb) {
+      console.log(store)
       cb(null, store[blobId] ? true : false)
     })), 'has')),
     size: single(toAsync(all(cont(function (blobId, cb) {
@@ -83,6 +84,7 @@ module.exports = function MockBlobStore (name, async) {
         if(err) return cb(err)
         data = Buffer.concat(data)
         var h = add(data, _hash)
+        console.log('ADD', name, h)
         if(!h) cb(new Error('wrong hash'))
         else {
           notify({id: h, size: data.length, ts: Date.now()})
@@ -92,9 +94,4 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
-
-
-
-
-
 

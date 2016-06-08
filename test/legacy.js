@@ -8,7 +8,7 @@ var u = require('./util')
 var Fake = u.fake
 var hash = u.hash
 
-module.exports = function (createBlobStore, createAsync) {
+module.exports = function (createBlobs, createAsync) {
 
   //client is legacy. call has on a peer, should emit want({<id>: -2})
 
@@ -18,7 +18,7 @@ module.exports = function (createBlobStore, createAsync) {
 
       var n = 0
 
-      var modern = Blobs(createBlobStore('legacy', async), 'modern')
+      var modern = createBlobs('modern', async)
 
       var blob = Fake('foo', 100)
       var h = hash(blob)
@@ -67,8 +67,8 @@ module.exports = function (createBlobStore, createAsync) {
   tape('modern calls legacy', function (t) {
     createAsync(function (async) {
 
-      var modern = Blobs(createBlobStore('legacy', async), 'modern')
-      var legacy = Blobs(createBlobStore('legacy', async), 'legacy')
+      var modern = createBlobs('modern', async)
+      var legacy = createBlobs('legacy', async)
 
       var size = legacy.size
       legacy.size = function (hashes, cb) {
@@ -108,7 +108,9 @@ module.exports = function (createBlobStore, createAsync) {
 
 }
 
-if(!module.parent)
-  module.exports(require('./mock'), require('./util').sync)
-
+if(!module.parent) {
+  module.exports(function (name, async) {
+      return require('../inject')(require('./mock')(name, async),  name)
+  }, require('./util').sync)
+}
 

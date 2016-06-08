@@ -1,5 +1,4 @@
 var tape = require('tape')
-var Blobs = require('../inject')
 var pull = require('pull-stream')
 var assert = require('assert')
 
@@ -7,14 +6,14 @@ var u = require('./util')
 var Fake = u.fake
 var hash = u.hash
 
-module.exports = function (createBlobStore, createAsync) {
+module.exports = function (createBlobs, createAsync) {
 
   //if a peer is recieves a WANT for a blob they have,
   //it responds with a HAS
   tape('simple', function (t) {
     createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('simple', async))
-
+      var blobs = createBlobs('simple', async)
+      console.log(blobs)
       var b = Fake('hello', 256), h = hash(b)
       pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
         if(err) throw err
@@ -54,7 +53,7 @@ module.exports = function (createBlobStore, createAsync) {
   //but only once.
   tape('simple wants', function (t) {
     createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('simple', async))
+      var blobs = createBlobs('simple', async)
 
       var b = Fake('hello', 256), h = hash(b)
 
@@ -78,7 +77,7 @@ module.exports = function (createBlobStore, createAsync) {
         pull.take(2),
         pull.collect(function (err, _res) {
   //        c++
-          console.log(c, _res)
+          console.log('END', c, _res)
           assert.deepEqual(_res, [{}, res])
           async.done()
 //          throw new Error('called thrice')
@@ -86,6 +85,7 @@ module.exports = function (createBlobStore, createAsync) {
       )
 
     }, function (err, results) {
+      console.log(err)
       if(err) throw err
       t.end()
     })
@@ -94,7 +94,7 @@ module.exports = function (createBlobStore, createAsync) {
   //if you want something, tell your peer.
   tape('want', function (t) {
     createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('want', async))
+      var blobs = createBlobs('want', async)
       var h = hash(Fake('foobar', 64))
       var res = {}
       res[h] = -1
@@ -123,7 +123,7 @@ module.exports = function (createBlobStore, createAsync) {
   //if you want something, tell your peer.
   tape('already wanted, before connection', function (t) {
     createAsync(function (async) {
-      var blobs = Blobs(createBlobStore('want', async))
+      var blobs = createBlobs('want', async)
       var h = hash(Fake('foobar', 64))
       var res = {}
       res[h] = -1
@@ -136,14 +136,14 @@ module.exports = function (createBlobStore, createAsync) {
         pull.find(null, function (err, _res) {
           if(err) throw err
           //requests 
-          assert.deepEqual(_res, res)
+          t.deepEqual(_res, res)
           async.done()
         })
       )
 
     }, function (err, results) {
       if(err) throw err
-      //t.deepEqual(_res, res)
+      //t.deepEqual()
       t.end()
     })
   })
@@ -151,7 +151,12 @@ module.exports = function (createBlobStore, createAsync) {
 }
 
 
-if(!module.parent)
-  module.exports(require('./mock'), require('./util').sync)
+if(!module.parent) {
+  module.exports(function (name, async) {
+      console.log('CREATE', name)
+      return require('../inject')(require('./mock')(name, async),  name)
+  }, require('./util').sync)
+}
+
 
 
