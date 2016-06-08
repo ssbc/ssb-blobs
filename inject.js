@@ -14,7 +14,7 @@ var isBlobId = require('ssb-ref').isBlob
 
 var MB = 1024*1024
 var MAX_SIZE = 5*MB
-
+var MIN_PUSH_PEERS = 3
 function noop () {}
 
 function clone (obj) {
@@ -24,8 +24,7 @@ function clone (obj) {
   return o
 }
 
-module.exports = function inject (blobs, name) {
-  console.log(blobs, name)
+module.exports = function inject (blobs, set, name) {
   var notify = Notify()
   var pushed = Notify()
 
@@ -105,6 +104,7 @@ module.exports = function inject (blobs, name) {
       if(Object.keys(push[id]).length >= MIN_PUSH_PEERS) {
         var data = {key: id, peers: push[id]}
         //XXX: CLEAR THIS JOB FROM THE DURABLE QUEUE!
+        set.remove(id)
         delete push[id]; pushed(data)
       }
     }
@@ -143,6 +143,8 @@ module.exports = function inject (blobs, name) {
     delete streams[peer_id]
   }
 
+  //LEGACY LEGACY LEGACY
+
   function legacySync (peer) {
     var drain //we need to keep a reference to drain
               //so we can abort it when we get an error.
@@ -175,11 +177,17 @@ module.exports = function inject (blobs, name) {
     //a stream of hashes
     pull(notify.listen(), pull.drain(hasLegacy, notPeer))
   }
+  //LEGACY LEGACY LEGACY
 
   function createWantStream (id) {
     if(!streams[id]) {
       streams[id] = notify.listen()
-      streams[id].push(clone(want))
+
+      //merge in ids we are pushing.
+      var w = clone(want)
+      for(var k in push) w[k] = -1
+      streams[id].push(w)
+
       return streams[id]
     }
     return streams[id]
@@ -214,20 +222,26 @@ module.exports = function inject (blobs, name) {
   return self = {
     //id: name,
     has: function (hash, cb) {
-      if(this === self) // a local call
+      if(this === self || !this || this === global) { // a local call
         return blobs.has.call(this, hash, cb)
-      //ELSE, interpret remote calls to has as a WANT request.
-      //handling this by calling process (which calls size())
-      //avoids a race condition in the tests.
-      //(and avoids doubling the number of calls)
-      var a = Array.isArray(hash) ? hash : [hash]
-      var o = {}
-      a.forEach(function (h) { o[h] = -1 })
-      //since this is always "has" process will never use the second arg.
-      process(o, null, function (err, res) {
-        var a = []; for(var k in o) a.push(res[k] > 0)
-        cb(null, Array.isArray(hash) ? a : a[0])
-      })
+      }
+      //LEGACY LEGACY LEGACY
+
+        //ELSE, interpret remote calls to has as a WANT request.
+        //handling this by calling process (which calls size())
+        //avoids a race condition in the tests.
+        //(and avoids doubling the number of calls)
+        var a = Array.isArray(hash) ? hash : [hash]
+        var o = {}
+        a.forEach(function (h) { o[h] = -1 })
+        //since this is always "has" process will never use the second arg.
+        process(o, null, function (err, res) {
+          var a = []; for(var k in o) a.push(res[k] > 0)
+          cb(null, Array.isArray(hash) ? a : a[0])
+        })
+
+      //LEGACY LEGACY LEGACY
+
     },
     size: blobs.size,
     get: blobs.get,
@@ -255,17 +269,17 @@ module.exports = function inject (blobs, name) {
       }
       if(id) return get(id, hash)
     },
-    push: function (id) {
+    push: function (id, cb) {
+      //also store the id to push.
       push[id] = push[id] || {}
+      queue(id, -1)
+      set.add(id, cb)
     },
     pushed: function () {
       return pushed.listen()
     },
     createWants: function () {
       return createWantStream(this.id)
-      var s = streams[this.id] || (streams[this.id] = notify.listen())
-//      s.push(want)
-      return s
     },
     //private api. used for testing. not exposed over rpc.
     _wantSink: wantSink,
@@ -279,7 +293,5 @@ module.exports = function inject (blobs, name) {
     }
   }
 }
-
-
 
 

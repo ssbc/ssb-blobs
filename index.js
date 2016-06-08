@@ -1,6 +1,7 @@
 var create = require('./create')
 var path = require('path')
 var Inject = require('./inject')
+var Set = require('./set')
 
 exports.manifest = {
   get: 'source',
@@ -23,8 +24,11 @@ exports.permissions = {
 }
 
 exports.init = function (sbot, config) {
-  var mb = create(path.join(config.path, 'blobs'))
-  var blobs = Inject(mb, sbot.id)
+  var blobs = Inject(
+    create(path.join(config.path, 'blobs')),
+    Set(level(path.join(config.path, 'blobs_push'), {valueEncoding: 'json'}))),
+    sbot.id
+  )
 
   sbot.on('rpc:connect', function (rpc) {
     blobs._onConnect(rpc, rpc.id)
