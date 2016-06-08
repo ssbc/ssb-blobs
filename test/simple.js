@@ -151,12 +151,7 @@ module.exports = function (createBlobs, createAsync) {
 }
 
 
-if(!module.parent) {
-  module.exports(function (name, async) {
-      console.log('CREATE', name)
-      return require('../inject')(require('./mock')(name, async),  name)
-  }, require('./util').sync)
-}
+if(!module.parent) u.tests(module.exports)
 
 
 

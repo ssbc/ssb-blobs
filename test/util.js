@@ -50,3 +50,12 @@ exports.sync = function noAsync (test, done) {
   test(async)
 }
 
+exports.tests = function (tests) {
+  tests(function (name, async) {
+    return require('../inject')(
+      require('./mock/blobs')(name, async),
+      require('./mock/set')(async),
+      name
+    )
+  }, exports.sync)
+}
