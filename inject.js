@@ -246,6 +246,7 @@ module.exports = function inject (blobs, set, name) {
     size: blobs.size,
     get: blobs.get,
     add: blobs.add,
+    ls: blobs.ls,
     changes: function () {
       return blobs.ls({old: false, meta: false})
     },
@@ -293,6 +294,9 @@ module.exports = function inject (blobs, set, name) {
     }
   }
 }
+
+
+
 
 
 
