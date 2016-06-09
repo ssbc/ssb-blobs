@@ -12,6 +12,7 @@ exports.manifest = {
   size: 'async',
   meta: 'async',
   want: 'async',
+  push: 'async',
   changes: 'source',
   createWants: 'source'
 }
@@ -36,6 +37,4 @@ exports.init = function (sbot, config) {
   })
   return blobs
 }
-
-
 
