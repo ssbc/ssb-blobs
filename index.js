@@ -2,6 +2,7 @@ var create = require('./create')
 var path = require('path')
 var Inject = require('./inject')
 var Set = require('./set')
+var Level = require('level')
 
 exports.manifest = {
   get: 'source',
@@ -26,7 +27,7 @@ exports.permissions = {
 exports.init = function (sbot, config) {
   var blobs = Inject(
     create(path.join(config.path, 'blobs')),
-    Set(level(path.join(config.path, 'blobs_push'), {valueEncoding: 'json'}))),
+    Set(Level(path.join(config.path, 'blobs_push'), {valueEncoding: 'json'})),
     sbot.id
   )
 
