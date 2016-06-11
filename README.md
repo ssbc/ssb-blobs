@@ -1,57 +1,55 @@
 # ssb-blobs
 
-current protocol:
+protocol for gossiping "blobs", in no particular order.
 
-client calls `has([id,...], cb)` and then
-server calls back array `[boolean: has,...]`
+## protocol
 
-if the server reports they have a given blob,
-then the client requests that blob.
+when two peers connect, they request the blobs the other peer "wants"
+they do this by sending a JSON object that is a map of
+`{<blob_id>: -hop_count}` (note, the hop count is negative)
+if they have a blob wanted by the peer, they respond
+with the size they have for that blob: `{<blob_id>: size}` (note,
+size is positive - this is how sizes and blobs are distinguished)
 
-## want-stream
+Peers can only request blobs they know about. In the legacy
+[scuttlebot/plugins/blobs](https://github.com/ssbc/scuttlebot/tree/99fad7c5f6e436cbd670346b4da20c57222a1419/plugins/blobs)
+peers would request blobs that where mentioned in an
+[ssb-feed](https://github.com/ssbc/ssb-feed) but this approach
+means they cannot know about (encrypted) blobs shared in private
+messages, or about blobs recursively linked from other blobs.
 
-Client creates want stream.
+This protocol addresses that by implementing _sympathetic wants_,
+if a peer requests a blob that you do not have, you start to want it too.
+so that wants to not flood the entire network, you signal how much
+you want it with a hop count. If you want it for your self,
+you use a `hop_count` of -1, if you want it for a friend,
+you use a `hop_count` of -2 (and so on..)
 
-Client & server emit their wants {hash: hops} tuples.
-if a peer has a hash, they respond: {hash: size}
+This allows you to publish a secret blob, without creating
+a permanent cryptographic record of that blob.
 
-if that size is under the max, request the blob from that peer.
-delete the blob from the want list.
+However, this alone would mean that to upload a blob,
+someone else needs to request it from you, which requries
+both peers to be online at the same time.
 
-##
-
-connect want-stream.
-
-send all your "wants".
-this is an object with blobids as keys, and hops as negative
-values.
-
-`{<blobId>:<hops>}` Send a blob with -1 as hops if you want it.
-send -2 if a friend wants it, send -3 if a friend of a friend wants it,
-etc.
-
-If you receive a `want` and you have that blob, send a _have_ so they
-know they can request it from you. When you receive a blob, send
-a _have_ to your peers, so they can request it if necessary.
-
-To support the network, peers should request things that their friends want,
-when your friend sends you a want, you may rebroadcast that want.
-peers should increase the hop count (remember hops are represented as -ve,
-so -1 becomes -2, etc) This way your friends in turn know that you are
-requesting it for someone else, and not for yourself.
-
-Peers should pick some hop limit, and not bother to retransmit
-wants after that limit is reached.
-
-There may be situations where a peer decrements the hop counter,
-although it's generally not recommended. A peer may also increment
-the hop counter by more than one - for example, if they are connected
-to a peer they are not "friends" with, they may increment by 2 instead of 1,
-etc.
-
-
+To address this, we have a `push` method. "pushing" a blob,
+just makes a peer "pretend" that they want a blob,
+triggering sympathetic wants from intermediate nodes,
+ensuring that there are at least some peers that will have the blob.
+(currently, your peer will continue to pretend they want the
+blob until at least 3 peers report having it)
 
 
 ## License
 
 MIT
+
+
+
+
+
+
+
+
+
+
