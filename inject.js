@@ -8,6 +8,8 @@ function isInteger (i) {
   return Number.isInteger(i)
 }
 
+var isArray = Array.isArray
+
 var Notify = require('pull-notify')
 var pull = require('pull-stream')
 var isBlobId = require('ssb-ref').isBlob
@@ -222,6 +224,14 @@ module.exports = function inject (blobs, set, name) {
   return self = {
     //id: name,
     has: function (hash, cb) {
+      if(isArray(hash)) {
+        for(var i = 0; i < hash.length; i++)
+          if(!isBlobId(hash[i]))
+            return cb(new Error('invalid hash:'+hash[i]))
+      }
+      else if(!isBlobId(hash))
+        return cb(new Error('invalid hash:'+hash))
+
       if(this === self || !this || this === global) { // a local call
         return blobs.has.call(this, hash, cb)
       }
@@ -251,6 +261,8 @@ module.exports = function inject (blobs, set, name) {
       return blobs.ls({old: false, meta: false})
     },
     want: function (hash, cb) {
+      if(!isBlobId(hash)) 
+        return cb(new Error('invalid hash:'+hash))
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
       var id = isAvailable(hash)
@@ -272,6 +284,9 @@ module.exports = function inject (blobs, set, name) {
     },
     push: function (id, cb) {
       //also store the id to push.
+      if(!isBlobId(id)) 
+        return cb(new Error('invalid hash:'+id))
+
       push[id] = push[id] || {}
       queue(id, -1)
       set.add(id, cb)
@@ -294,6 +309,8 @@ module.exports = function inject (blobs, set, name) {
     }
   }
 }
+
+
 
 
 
