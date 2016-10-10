@@ -201,7 +201,7 @@ module.exports = function inject (blobs, set, name) {
         //respond with list of blobs you already have,
         process(data, peer.id, function (err, has_data) {
           //(if you have any)
-          if(!isEmpty(has_data)) streams[peer.id].push(has_data)
+          if(!isEmpty(has_data) && streams[peer.id]) streams[peer.id].push(has_data)
         })
       }, function (err) {
         if(err && !modern) {
