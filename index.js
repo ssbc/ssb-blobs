@@ -33,6 +33,7 @@ exports.init = function (sbot, config) {
   )
 
   sbot.on('rpc:connect', function (rpc) {
+    if (rpc.id === sbot.id) return
     blobs._onConnect(rpc, rpc.id)
   })
   return blobs
