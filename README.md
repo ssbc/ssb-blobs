@@ -50,7 +50,8 @@ ssb-blobs will be.
   "stingy": boolean, //defaults to false
   "sympathy": integer, //defaults to 3
   "pushy": integer, //default to 3
-  "legacy": boolean //defaults to true
+  "legacy": boolean, //defaults to true
+  "max": integer, //maximum size blob to download, in bytes, default 5 MB
 }
 ```
 
@@ -79,17 +80,13 @@ when you publish a blob, tell everyone about it, until at least this many peers 
 whether you support the legacy style blob replication, it's probably safe to disable this now
 since most pubs will have updated by now.
 
+### max (default 5mb)
+
+maximum size of blobs to replicate.
+
 ## License
 
 MIT
-
-
-
-
-
-
-
-
 
 
 
