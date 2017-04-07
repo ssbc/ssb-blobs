@@ -26,7 +26,8 @@ function clone (obj) {
   return o
 }
 
-module.exports = function inject (blobs, set, name) {
+module.exports = function inject (blobs, set, name, opts) {
+  opts = opts || {}
   var notify = Notify()
   var pushed = Notify()
 
@@ -114,7 +115,7 @@ module.exports = function inject (blobs, set, name) {
     var n = 0, res = {}
     for(var id in data) {
       if(isBlobId(id) && isInteger(data[id])) {
-        if(data[id] <= 0) { //interpret as "WANT"
+        if(data[id] <= 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
           n++
           //check whether we already *HAVE* this file.
           //respond with it's size, if we do.
@@ -143,8 +144,9 @@ module.exports = function inject (blobs, set, name) {
   }
 
   //LEGACY LEGACY LEGACY
-
   function legacySync (peer) {
+    if(opts.legacy === false) return
+
     var drain //we need to keep a reference to drain
               //so we can abort it when we get an error.
     function hasLegacy (hashes) {
@@ -206,12 +208,12 @@ module.exports = function inject (blobs, set, name) {
       }, function (err) {
         if(err && !modern) {
           streams[peer.id] = false
-          legacySync(peer)
+          if(opts.legacy !== false) legacySync(peer)
         }
         //if can handle unpeer another way,
         //then can refactor legacy handling out of sight.
 
-        //handle error and fallback to legacy mode.
+        //handle error and fallback to legacy mode, if enabled.
         else if(peers[peer.id] == peer) {
           delete peers[peer.id]
           delete available[peer.id]
@@ -236,7 +238,7 @@ module.exports = function inject (blobs, set, name) {
         return blobs.has.call(this, hash, cb)
       }
       //LEGACY LEGACY LEGACY
-
+        if(opts.legacy === false) return
         //ELSE, interpret remote calls to has as a WANT request.
         //handling this by calling process (which calls size())
         //avoids a race condition in the tests.
@@ -258,7 +260,13 @@ module.exports = function inject (blobs, set, name) {
     add: blobs.add,
     ls: blobs.ls,
     changes: function () {
-      return blobs.ls({old: false, meta: false})
+      //XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
+      return pull(
+        blobs.ls({old: false, meta: false}),
+        pull.filter(function (id) {
+          return opts.stingy !== true || push[id]
+        })
+      )
     },
     want: function (hash, cb) {
       if(!isBlobId(hash)) 
@@ -309,11 +317,6 @@ module.exports = function inject (blobs, set, name) {
     }
   }
 }
-
-
-
-
-
 
 
 
