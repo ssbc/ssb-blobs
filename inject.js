@@ -38,6 +38,7 @@ module.exports = function inject (blobs, set, name, opts) {
   var stingy = opts.stingy === true
   var legacy = opts.legacy !== false
   var pushy = opts.pushy || 3
+  var max = opts.max || 5*1024*1024
 
   var notify = Notify()
   var pushed = Notify()
@@ -61,7 +62,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
   function isAvailable(id) {
     for(var peer in peers)
-      if(available[peer] && available[peer][id] && peers[peer])
+      if(available[peer] && available[peer][id] < max && peers[peer])
         return peer
   }
 
@@ -69,9 +70,7 @@ module.exports = function inject (blobs, set, name, opts) {
     if(getting[id] || !peers[peer]) return
 
     getting[id] = peer
-    //XXX REINSTATE MAXIMUM SIZE BLOBS!
-//    var source = peers[peer].blobs.get({id: id, max: 5*1024*1024})
-    var source = peers[peer].blobs.get(id)
+    var source = peers[peer].blobs.get({key: id, max: max})
     pull(source, blobs.add(id, function (err, _id) {
       delete getting[id]
       if(err) {
@@ -120,7 +119,7 @@ module.exports = function inject (blobs, set, name, opts) {
         delete push[id]; pushed(data)
       }
     }
-    if(want[id] && !getting[id] && size < MAX_SIZE) get(peer_id, id)
+    if(want[id] && !getting[id] && size < max) get(peer_id, id)
   }
 
   function process (data, peer, cb) {
@@ -157,7 +156,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
   //LEGACY LEGACY LEGACY
   function legacySync (peer) {
-    if(opts.legacy === false) return
+    if(!legacy) return
 
     var drain //we need to keep a reference to drain
               //so we can abort it when we get an error.
@@ -220,7 +219,7 @@ module.exports = function inject (blobs, set, name, opts) {
       }, function (err) {
         if(err && !modern) {
           streams[peer.id] = false
-          if(opts.legacy !== false) legacySync(peer)
+          if(legacy) legacySync(peer)
         }
         //if can handle unpeer another way,
         //then can refactor legacy handling out of sight.
@@ -250,7 +249,7 @@ module.exports = function inject (blobs, set, name, opts) {
         return blobs.has.call(this, hash, cb)
       }
       //LEGACY LEGACY LEGACY
-        if(opts.legacy === false) return
+        if(!legacy) return
         //ELSE, interpret remote calls to has as a WANT request.
         //handling this by calling process (which calls size())
         //avoids a race condition in the tests.
@@ -276,7 +275,7 @@ module.exports = function inject (blobs, set, name, opts) {
       return pull(
         blobs.ls({old: false, meta: false}),
         pull.filter(function (id) {
-          return opts.stingy !== true || push[id]
+          return !stingy || push[id]
         })
       )
     },
@@ -329,5 +328,4 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
-
 
