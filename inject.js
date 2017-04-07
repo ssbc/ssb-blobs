@@ -16,7 +16,6 @@ var isBlobId = require('ssb-ref').isBlob
 
 var MB = 1024*1024
 var MAX_SIZE = 5*MB
-var MIN_PUSH_PEERS = 3
 function noop () {}
 
 function clone (obj) {
@@ -26,8 +25,20 @@ function clone (obj) {
   return o
 }
 
+function count(obj) {
+  var c = 0
+  for(var k in obj) c++
+  return c
+}
+
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
+  //sympathy controls whether you'll replicate
+  var sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
+  var stingy = opts.stingy === true
+  var legacy = opts.legacy !== false
+  var pushy = opts.pushy || 3
+
   var notify = Notify()
   var pushed = Notify()
 
@@ -73,6 +84,7 @@ module.exports = function inject (blobs, set, name, opts) {
   }
 
   function wants (peer, id, hops) {
+    if(Math.abs(hops) < sympathy) return //sorry!
     if(!want[id] || want[id] < hops) {
       want[id] = hops
       queue(id, hops)
@@ -102,7 +114,7 @@ module.exports = function inject (blobs, set, name, opts) {
     //if N peers have it, we can stop broadcasting.
     if(push[id]) {
       push[id][peer_id] = size
-      if(Object.keys(push[id]).length >= MIN_PUSH_PEERS) {
+      if(count(push[id]) >= pushy) {
         var data = {key: id, peers: push[id]}
         set.remove(id)
         delete push[id]; pushed(data)
@@ -317,6 +329,5 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
-
 
 
