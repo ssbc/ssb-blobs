@@ -55,6 +55,10 @@ module.exports = function MockBlobStore (name, async) {
   return {
     store: store,
     get: function (blobId) {
+      var max = blobId.max
+      blobId = blobId.key || blobId
+      if(store[blobId] && max && store[blobId].length > max)
+        return pull(pull.error(new Error('bigger than max:'+blobId)), async.through('get-error'))
       if(!store[blobId])
         return pull(pull.error(new Error('no blob:'+blobId)), async.through('get-error'))
       return pull(pull.values([store[blobId]]), async.through('get'))
@@ -93,6 +97,12 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
+
+
+
+
+
+
 
 
 
