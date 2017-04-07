@@ -84,7 +84,7 @@ module.exports = function inject (blobs, set, name, opts) {
   }
 
   function wants (peer, id, hops) {
-    if(Math.abs(hops) < sympathy) return //sorry!
+    if(Math.abs(hops) > sympathy) return //sorry!
     if(!want[id] || want[id] < hops) {
       want[id] = hops
       queue(id, hops)
