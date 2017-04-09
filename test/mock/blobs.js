@@ -62,6 +62,10 @@ module.exports = function MockBlobStore (name, async) {
     has: single(toAsync(all(cont(function (blobId, cb) {
       cb(null, store[blobId] ? true : false)
     })), 'has')),
+    rm: single(toAsync(all(cont(function (blobId, cb) {
+      delete store[blobid]
+      cb(null)
+    })), 'rm')),
     size: single(toAsync(all(cont(function (blobId, cb) {
       cb(null, store[blobId] ? store[blobId].length : null)
     })), 'size')),

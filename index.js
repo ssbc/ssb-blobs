@@ -7,6 +7,7 @@ var Level = require('level')
 exports.manifest = {
   get: 'source',
   add: 'sink',
+  rm: 'async',
   ls: 'source',
   has: 'async',
   size: 'async',

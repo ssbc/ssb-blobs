@@ -256,6 +256,7 @@ module.exports = function inject (blobs, set, name) {
     size: blobs.size,
     get: blobs.get,
     add: blobs.add,
+    rm: blobs.rm,
     ls: blobs.ls,
     changes: function () {
       return blobs.ls({old: false, meta: false})
