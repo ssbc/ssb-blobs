@@ -245,11 +245,14 @@ module.exports = function inject (blobs, set, name, opts) {
       else if(!isBlobId(hash))
         return cb(new Error('invalid hash:'+hash))
 
-      if(this === self || !this || this === global) { // a local call
-        return blobs.has.call(this, hash, cb)
+      if(!legacy) {
+        blobs.has.call(this, hash, cb)
       }
+      else {
       //LEGACY LEGACY LEGACY
-        if(!legacy) return
+        if(this === self || !this || this === global) { // a local call
+          return blobs.has.call(this, hash, cb)
+        }
         //ELSE, interpret remote calls to has as a WANT request.
         //handling this by calling process (which calls size())
         //avoids a race condition in the tests.
@@ -262,9 +265,8 @@ module.exports = function inject (blobs, set, name, opts) {
           var a = []; for(var k in o) a.push(res[k] > 0)
           cb(null, Array.isArray(hash) ? a : a[0])
         })
-
       //LEGACY LEGACY LEGACY
-
+      }
     },
     size: blobs.size,
     get: blobs.get,
@@ -329,4 +331,7 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
+
+
+
 
