@@ -30,7 +30,8 @@ exports.init = function (sbot, config) {
   var blobs = Inject(
     create(path.join(config.path, 'blobs')),
     Set(Level(path.join(config.path, 'blobs_push'), {valueEncoding: 'json'})),
-    sbot.id
+    sbot.id,
+    config.blobs
   )
 
   sbot.on('rpc:connect', function (rpc) {
