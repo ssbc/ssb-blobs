@@ -270,6 +270,7 @@ module.exports = function inject (blobs, set, name, opts) {
     },
     size: blobs.size,
     get: blobs.get,
+    getSlice: blobs.getSlice,
     add: blobs.add,
     rm: blobs.rm,
     ls: blobs.ls,

@@ -6,6 +6,7 @@ var Level = require('level')
 
 exports.manifest = {
   get: 'source',
+  getSlice: 'source',
   add: 'sink',
   rm: 'async',
   ls: 'source',
@@ -23,7 +24,7 @@ exports.name = 'blobs'
 exports.version = require('./package.json').version
 
 exports.permissions = {
-    anonymous: {allow: ['has', 'get', 'changes', 'createWants']},
+    anonymous: {allow: ['has', 'get', 'getSlice', 'changes', 'createWants']},
 }
 
 exports.init = function (sbot, config) {

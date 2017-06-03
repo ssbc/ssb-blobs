@@ -10,7 +10,7 @@
   "dependencies": {
     "cont": "^1.0.3",
     "level": "^1.4.0",
-    "multiblob": "^1.10.0",
+    "multiblob": "^1.11.0",
     "pull-level": "^1.5.2",
     "pull-notify": "^0.1.0",
     "pull-stream": "^3.3.0",
@@ -19,7 +19,6 @@
   "devDependencies": {
     "interleavings": "^0.3.1",
     "mkdirp": "^0.5.1",
-    "multiblob": "^1.9.3",
     "osenv": "^0.1.3",
     "pull-bitflipper": "^0.1.0",
     "rimraf": "^2.5.2",
