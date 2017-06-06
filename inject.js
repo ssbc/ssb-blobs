@@ -31,6 +31,15 @@ function count(obj) {
   return c
 }
 
+function onAbort(abortCb) {
+  return function (read) {
+    return function (abort, cb) {
+      if (abort) abortCb(abort, cb)
+      else read(null, cb)
+    }
+  }
+}
+
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
   //sympathy controls whether you'll replicate
@@ -199,10 +208,11 @@ module.exports = function inject (blobs, set, name, opts) {
       var w = clone(want)
       for(var k in push) w[k] = -1
       streams[id].push(w)
-
-      return streams[id]
     }
-    return streams[id]
+    return pull(streams[id], onAbort(function (err, cb) {
+      streams[id] = false
+      cb(err)
+    }))
   }
 
   function wantSink (peer) {
