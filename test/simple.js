@@ -148,10 +148,43 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
+  //if you want something, tell your peer.
+//  tape('empty hash, not requested over the wire', function (t) {
+//    createAsync(function (async) {
+//      var blobs = createBlobs('want', async)
+//      var empty = hash(new Buffer(0))
+//      blobs.want(empty, function () {})
+//
+//      pull(
+//        blobs.createWants.call({id: 'test'}),
+//        async.through(),
+//        pull.find(null, function (err, _res) {
+//          if(err) throw err
+//          //requests 
+//          console.log(_res)
+//          t.fail('should not have sent any message')
+//          async.done()
+//        })
+//      )
+//
+//    }, function (err, results) {
+//      if(err) throw err
+//      //t.deepEqual()
+//      t.end()
+//    })
+//  })
+
+
+
 }
 
 
 if(!module.parent) u.tests(module.exports)
+
+
+
+
+
 
 
 

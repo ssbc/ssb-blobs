@@ -29,6 +29,7 @@ function single (fn) {
 module.exports = function MockBlobStore (name, async) {
 
   var notify = Notify()
+  var empty = hash(new Buffer(0))
 
   var store = {}
   function add (buf, _h) {
@@ -57,13 +58,20 @@ module.exports = function MockBlobStore (name, async) {
     get: function (blobId) {
       var max = blobId.max
       blobId = blobId.key || blobId
+      if(blobId === empty) return pull.empty()
+
       if(store[blobId] && max && store[blobId].length > max)
         return pull(pull.error(new Error('bigger than max:'+blobId)), async.through('get-error'))
       if(!store[blobId])
         return pull(pull.error(new Error('no blob:'+blobId)), async.through('get-error'))
       return pull(pull.values([store[blobId]]), async.through('get'))
     },
+    isEmptyHash: function (h) {
+      return h === empty
+    },
     has: single(toAsync(all(cont(function (blobId, cb) {
+      if(blobId === empty) return cb(null, true)
+
       cb(null, store[blobId] ? true : false)
     })), 'has')),
     rm: single(toAsync(all(cont(function (blobId, cb) {
@@ -71,6 +79,7 @@ module.exports = function MockBlobStore (name, async) {
       cb(null)
     })), 'rm')),
     size: single(toAsync(all(cont(function (blobId, cb) {
+      if(blobId === empty) return cb(null, 0)
       cb(null, store[blobId] ? store[blobId].length : null)
     })), 'size')),
     ls: function (opts) {
@@ -101,12 +110,4 @@ module.exports = function MockBlobStore (name, async) {
     }
   }
 }
-
-
-
-
-
-
-
-
 
