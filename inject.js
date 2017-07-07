@@ -288,21 +288,24 @@ module.exports = function inject (blobs, set, name, opts) {
         return cb(new Error('invalid hash:'+hash))
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
+      if(blobs.isEmptyHash(hash)) return cb(null, true)
       var id = isAvailable(hash)
-      if(!id) queue(hash, -1)
 
       if(waiting[hash])
         waiting[hash].push(cb)
       else {
         waiting[hash] = [cb]
-        blobs.size(hash, function (err, has) {
-          if(has) {
+        blobs.size(hash, function (err, size) {
+          if(size != null) {
             while(waiting[hash].length)
               waiting[hash].shift()(null, true)
             delete waiting[hash]
           }
         })
       }
+
+      if(!id && waiting[hash]) queue(hash, -1)
+
       if(id) return get(id, hash)
     },
     push: function (id, cb) {
@@ -332,7 +335,5 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
-
-
 
 
