@@ -12,8 +12,10 @@ var log = exports.log = function log (name) {
 
 function bindAll(obj, context) {
   var o = {}
-  for(var k in obj)
-    o[k] = obj[k].bind(context)
+  for(var k in obj) {
+    if(obj[k])
+      o[k] = obj[k].bind(context)
+  }
   return o
 }
 
@@ -59,3 +61,5 @@ exports.tests = function (tests) {
     )
   }, exports.sync)
 }
+
+
