@@ -21,7 +21,7 @@ module.exports = function (createBlobs, createAsync) {
         t.equal(_h, h)
 
         var req = {}
-        req[h] = 0
+        req[h] = -1
         var res = {}
         res[h] = 256
 
@@ -180,11 +180,5 @@ module.exports = function (createBlobs, createAsync) {
 
 
 if(!module.parent) u.tests(module.exports)
-
-
-
-
-
-
 
 
