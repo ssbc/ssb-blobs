@@ -126,7 +126,7 @@ module.exports = function inject (blobs, set, name, opts) {
     var n = 0, res = {}
     for(var id in data) {
       if(isBlobId(id) && isInteger(data[id])) {
-        if(data[id] <= 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
+        if(data[id] < 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
           n++
           //check whether we already *HAVE* this file.
           //respond with it's size, if we do.
@@ -335,5 +335,6 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
+
 
 
