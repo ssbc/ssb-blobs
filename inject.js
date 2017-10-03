@@ -133,7 +133,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
   function process (data, peer, cb) {
     var n = 0, res = {}
-    for(var id in data) {
+    for(var id in data) (function (id) {
       if(isBlobId(id) && isInteger(data[id])) {
         if(data[id] < 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
           n++
@@ -149,7 +149,7 @@ module.exports = function inject (blobs, set, name, opts) {
           has(peer, id, data[id])
         }
       }
-    }
+    }(id))
 
     function next () {
       if(--n) return
