@@ -2,10 +2,10 @@
   "name": "ssb-blobs",
   "description": "blobs and blob replication for ssb",
   "version": "1.1.4",
-  "homepage": "https://github.com/dominictarr/ssb-blobs",
+  "homepage": "https://github.com/ssbc/ssb-blobs",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dominictarr/ssb-blobs.git"
+    "url": "git://github.com/ssbc/ssb-blobs.git"
   },
   "dependencies": {
     "cont": "^1.0.3",
