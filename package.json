@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "cont": "^1.0.3",
-    "level": "^1.4.0",
+    "level": "^3.0.0",
     "multiblob": "^1.12.0",
-    "pull-level": "^1.5.2",
+    "pull-level": "^2.0.4",
     "pull-notify": "^0.1.0",
     "pull-stream": "^3.3.0",
     "ssb-ref": "^2.3.0"
@@ -22,7 +22,7 @@
     "osenv": "^0.1.3",
     "pull-bitflipper": "^0.1.0",
     "rimraf": "^2.5.2",
-    "secret-stack": "^2.5.1",
+    "secret-stack": "^4.0.1",
     "tape": "^4.5.1"
   },
   "scripts": {
