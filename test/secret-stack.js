@@ -13,7 +13,7 @@ function hash (s) {
 
 var appkey = hash('TESTBLOBS')
 
-var create = SecretStack({ appKey: appkey }).use(require('../'))
+var create = SecretStack({ caps: {shs: appkey} }).use(require('../'))
 
 function tmp (name) {
   var dir = path.join(osenv.tmpdir(), 'testblobs-'+Date.now()+'-'+name)
