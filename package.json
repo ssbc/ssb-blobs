@@ -17,7 +17,7 @@
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {
-    "interleavings": "^0.3.1",
+    "interleavings": "^1.0.0",
     "mkdirp": "^0.5.1",
     "osenv": "^0.1.3",
     "pull-bitflipper": "^0.1.0",
