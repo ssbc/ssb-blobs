@@ -1,5 +1,6 @@
+const debug = require('debug')('ssb-blobs')
 module.exports = function (async) {
-  console.log(async)
+  debug(async)
   var set = {}
   return {
     set: set,

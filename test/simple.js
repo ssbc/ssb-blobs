@@ -1,3 +1,4 @@
+const debug = require('debug')('ssb-blobs')
 var tape = require('tape')
 var pull = require('pull-stream')
 var assert = require('assert')
@@ -13,11 +14,11 @@ module.exports = function (createBlobs, createAsync) {
   tape('simple', function (t) {
     createAsync(function (async) {
       var blobs = createBlobs('simple', async)
-      console.log(blobs)
+      debug(blobs)
       var b = Fake('hello', 256), h = hash(b)
       pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
         if(err) throw err
-        console.log('added', _h)
+        debug('added', _h)
         t.equal(_h, h)
 
         var req = {}
@@ -37,7 +38,7 @@ module.exports = function (createBlobs, createAsync) {
           pull.take(2),
           pull.collect(function (err, _res) {
             if(err) throw err
-            console.log("_RES", _res)
+            debug("_RES", _res)
             assert.deepEqual(_res, [{}, res])
             async.done()
           })
@@ -77,7 +78,7 @@ module.exports = function (createBlobs, createAsync) {
         pull.take(2),
         pull.collect(function (err, _res) {
   //        c++
-          console.log('END', c, _res)
+          debug('END', c, _res)
           assert.deepEqual(_res, [{}, res])
           async.done()
 //          throw new Error('called thrice')
@@ -85,7 +86,7 @@ module.exports = function (createBlobs, createAsync) {
       )
 
     }, function (err, results) {
-      console.log(err)
+      debug(err)
       if(err) throw err
       t.end()
     })
@@ -161,7 +162,7 @@ module.exports = function (createBlobs, createAsync) {
 //        pull.find(null, function (err, _res) {
 //          if(err) throw err
 //          //requests 
-//          console.log(_res)
+//          debug(_res)
 //          t.fail('should not have sent any message')
 //          async.done()
 //        })

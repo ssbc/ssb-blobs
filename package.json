@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "cont": "^1.0.3",
+    "debug": "^4.1.1",
     "level": "^4.0.0",
     "multiblob": "^1.12.0",
     "pull-level": "^2.0.4",
@@ -17,7 +18,7 @@
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {
-    "interleavings": "^0.3.1",
+    "interleavings": "github:fraction/interleavings#debug-console-log",
     "mkdirp": "^0.5.1",
     "osenv": "^0.1.3",
     "pull-bitflipper": "^0.1.0",
