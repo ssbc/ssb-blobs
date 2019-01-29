@@ -1,3 +1,4 @@
+const debug = require('debug')('ssb-blobs')
 var tape = require('tape')
 var Blobs = require('../inject')
 var pull = require('pull-stream')
@@ -36,12 +37,12 @@ module.exports = function (createBlobs, createAsync) {
 
       pull(alice.pushed(), pull.drain(function (data) {
         assert.deepEqual(data, {key: h, peers: {bob: 64, carol: 64, dan: 64}})
-        console.log("PUSHED", data)
+        debug("PUSHED", data)
         cont.para([bob, carol, dan].map(function (p) {
           return cont(p.has)(h)
         }))
           (function (err, ary) {
-            console.log('HAS', err, ary)
+            debug('HAS', err, ary)
             if(err) throw err
             assert.deepEqual(ary, [true, true, true])
             async.done()

@@ -1,3 +1,4 @@
+const debug = require('debug')('ssb-blobs')
 var tape = require('tape')
 var Blobs = require('../inject')
 var pull = require('pull-stream')
@@ -72,9 +73,9 @@ module.exports = function (createBlobs, createAsync) {
 
       var size = legacy.size
       legacy.size = function (hashes, cb) {
-        console.log("CALLED_SIZE", hashes)
+        debug("CALLED_SIZE", hashes)
         size.call(this, hashes, function (err, value) {
-          console.log('SIZES', err, value)
+          debug('SIZES', err, value)
           cb(err, value)
         })
       }
@@ -96,11 +97,11 @@ module.exports = function (createBlobs, createAsync) {
 
       pull(pull.once(blob), legacy.add(function (err, _h) {
         assert.equal(_h, h)
-        console.log('ADDED', _h)
+        debug('ADDED', _h)
       }))
 
     }, function (err) {
-      console.log(err)
+      debug(err)
       if(err) throw err
       t.end()
     })

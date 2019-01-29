@@ -1,3 +1,4 @@
+const debug = require('debug')('ssb-blobs')
 var pull = require('pull-stream')
 var crypto = require('crypto')
 var cont = require('cont')
@@ -100,7 +101,7 @@ module.exports = function MockBlobStore (name, async) {
         if(err) return cb(err)
         data = Buffer.concat(data)
         var h = add(data, _hash)
-        console.log('..ADDED', name, h)
+        debug('..ADDED', name, h)
         if(!h) cb(new Error('wrong hash'))
         else {
           notify({id: h, size: data.length, ts: Date.now()})

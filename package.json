@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "cont": "^1.0.3",
+    "debug": "^4.1.1",
     "level": "^4.0.0",
     "multiblob": "^1.12.0",
     "pull-level": "^2.0.4",

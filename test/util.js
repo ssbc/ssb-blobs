@@ -1,10 +1,11 @@
+const debug = require('debug')('ssb-blobs')
 var pull = require('pull-stream')
 var crypto = require('crypto')
 
 var log = exports.log = function log (name) {
   if(process.env.DEBUG)
     return pull.through(function (e) {
-      console.log(name, e)
+      debug(name, e)
     })
   else
     return pull.through()

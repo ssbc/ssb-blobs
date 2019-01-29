@@ -1,3 +1,4 @@
+const debug = require('debug')('ssb-blobs')
 var tape = require('tape')
 var Blobs = require('../inject')
 var pull = require('pull-stream')
@@ -14,7 +15,7 @@ module.exports = function (createBlobs, createAsync) {
   function log (name) {
     if(LOGGING)
       return pull.through(function (e) {
-        console.log(name, e)
+        debug(name, e)
       })
     else
       return pull.through()
@@ -31,9 +32,9 @@ module.exports = function (createBlobs, createAsync) {
 
       alice.want(h, function (err, has) {
         if(err) throw err
-        console.log('ALICE has?', h, has)
+        debug('ALICE has?', h, has)
         alice.has(h, function (err, has) {
-          console.log('ALICE has!', h, has)
+          debug('ALICE has!', h, has)
           if(err) throw err
           assert.ok(has)
           async.done()
@@ -103,7 +104,7 @@ module.exports = function (createBlobs, createAsync) {
   tape('peers want what you have', function (t) {
     createAsync(function (async) {
       if(Array.isArray(process._events['exit']))
-        console.log(process._events['exit'].reverse())
+        debug(process._events['exit'].reverse())
       var alice = createBlobs('alice', async)
       var bob   = createBlobs('bob', async)
       var carol = createBlobs('carol', async)
@@ -184,7 +185,7 @@ module.exports = function (createBlobs, createAsync) {
       pull(
         bob.changes(),
         pull.drain(function (_h) {
-          console.log('HAS', _h)
+          debug('HAS', _h)
           assert.equal(_h, h)
           async.done()
         })
