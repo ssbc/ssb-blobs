@@ -25,30 +25,32 @@ var alice = create({ seed: hash('ALICE'), path: tmp('alice') })
 var bob = create({ seed: hash('BOB'), path: tmp('bob') })
 
 tape('alice pushes to bob', function (t) {
+  //avoid race because of async server creation, introduced secret-stack@6
+  bob.once('multiserver:listening', function () {
+    alice.connect(bob.address(), function (err, rpc) {
+      if(err) throw err
+    })
 
-  alice.connect(bob.address(), function (err, rpc) {
-    if(err) throw err
+    var hello = new Buffer('Hello World'), _hash
+
+    pull(
+      bob.blobs.ls({live: true, long: true}),
+      pull.take(1),
+      pull.collect(function (err, ary) {
+        t.equal(ary[0].id, _hash)
+        t.end()
+        alice.close()
+        bob.close()
+      })
+    )
+
+    pull(
+      pull.values([hello]),
+      alice.blobs.add(function (err, hash) {
+        _hash = hash
+        alice.blobs.push(hash)
+      })
+    )
   })
-
-  var hello = new Buffer('Hello World'), _hash
-
-  pull(
-    bob.blobs.ls({live: true, long: true}),
-    pull.take(1),
-    pull.collect(function (err, ary) {
-      t.equal(ary[0].id, _hash)
-      t.end()
-      alice.close()
-      bob.close()
-    })
-  )
-
-  pull(
-    pull.values([hello]),
-    alice.blobs.add(function (err, hash) {
-      _hash = hash
-      alice.blobs.push(hash)
-    })
-  )
 })
 
