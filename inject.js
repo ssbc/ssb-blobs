@@ -16,7 +16,6 @@ var isBlobId = require('ssb-ref').isBlob
 
 var MB = 1024*1024
 var MAX_SIZE = 5*MB
-function noop () {}
 
 function clone (obj) {
   var o = {}
@@ -345,6 +344,4 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
-
-
 
