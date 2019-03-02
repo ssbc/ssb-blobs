@@ -21,11 +21,16 @@ function tmp (name) {
   return dir
 }
 
-var alice = create({ seed: hash('ALICE'), path: tmp('alice') })
-var bob = create({ seed: hash('BOB'), path: tmp('bob') })
 
 tape('alice pushes to bob', function (t) {
-  //avoid race because of async server creation, introduced secret-stack@6
+  var alice = create({ seed: hash('ALICE'), path: tmp('alice') })
+  var bob = create({ seed: hash('BOB'), path: tmp('bob') })
+
+  // Avoid race because of async server creation, introduced secret-stack@6.
+  //
+  // This `once()` function must be run before the event is emit, which is why
+  // `create()` must be run directly above. If `once()` is called much later
+  // than `create()` then the event is emit before the listener is created.
   bob.once('multiserver:listening', function () {
     alice.connect(bob.address(), function (err, rpc) {
       if(err) throw err
