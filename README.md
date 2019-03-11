@@ -70,7 +70,7 @@ graph: `ssb-blobs` is actually completely independent of the ssb logs.
 
 Set this to 0 to never request a blob that someone else has asked for, unless _you_ want it too.
 
-### `pushy (default `3`)
+### `pushy` (default `3`)
 
 When you publish a blob, tell everyone about it, until at least this many peers have taken it.
 Of course for this they will need a setting for `sympathy` > 0.
