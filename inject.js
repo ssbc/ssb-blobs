@@ -39,6 +39,17 @@ function onAbort(abortCb) {
   }
 }
 
+function toBlobId(id) {
+  if(Array.isArray(id)) return id//.map(toBlobId)
+  return isBlobId(id) ? id : isBlobId(id && id.id) ? id.id : null
+}
+
+function wrap (fn) {
+  return function (id, cb) {
+    return fn.call(this, toBlobId(id), cb)
+  }
+}
+
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
   //sympathy controls whether you'll replicate
@@ -246,6 +257,8 @@ module.exports = function inject (blobs, set, name, opts) {
   return self = {
     //id: name,
     has: function (hash, cb) {
+      hash = toBlobId(hash)
+
       if(isArray(hash)) {
         for(var i = 0; i < hash.length; i++)
           if(!isBlobId(hash[i]))
@@ -277,11 +290,11 @@ module.exports = function inject (blobs, set, name, opts) {
       //LEGACY LEGACY LEGACY
       }
     },
-    size: blobs.size,
+    size: wrap(blobs.size),
     get: blobs.get,
     getSlice: blobs.getSlice,
-    add: blobs.add,
-    rm: blobs.rm,
+    add: wrap(blobs.add),
+    rm: wrap(blobs.rm),
     ls: blobs.ls,
     changes: function () {
       //XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
@@ -293,7 +306,8 @@ module.exports = function inject (blobs, set, name, opts) {
       )
     },
     want: function (hash, cb) {
-      if(!isBlobId(hash)) 
+      hash = toBlobId(hash)
+      if(!isBlobId(hash))
         return cb(new Error('invalid hash:'+hash))
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
@@ -318,6 +332,7 @@ module.exports = function inject (blobs, set, name, opts) {
       if(id) return get(id, hash)
     },
     push: function (id, cb) {
+      id = toBlobId(id)
       //also store the id to push.
       if(!isBlobId(id)) 
         return cb(new Error('invalid hash:'+id))
@@ -344,4 +359,10 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
+
+
+
+
+
+
 
