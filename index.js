@@ -16,7 +16,8 @@ exports.manifest = {
   want: 'async',
   push: 'async',
   changes: 'source',
-  createWants: 'source'
+  createWants: 'source',
+  help: 'sync'
 }
 
 exports.name = 'blobs'

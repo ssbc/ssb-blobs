@@ -357,7 +357,11 @@ module.exports = function inject (blobs, set, name, opts) {
       //process is called when wantSync
       //doesn't immediately get an error.
       pull(other.blobs.createWants(), wantSink(other))
+    },
+    help: function () {
+      return require('./help')
     }
   }
 }
+
 
