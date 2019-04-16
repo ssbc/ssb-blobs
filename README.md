@@ -1,6 +1,6 @@
 # ssb-blobs
 
-Protocol for gossiping "blobs", in no particular order.
+Protocol for gossiping "blobs", in no particular order. This is a plugin for [secret-stack](https://github.com/ssbc/secret-stack) and such general information about these type of plugins is [documented in `plugins.md` in that repository](https://github.com/ssbc/secret-stack/blob/master/plugins.md).
 
 ## Protocol
 
@@ -29,7 +29,7 @@ This allows you to publish a secret blob, without creating
 a permanent cryptographic record of that blob.
 
 However, this alone would mean that to upload a blob,
-someone else needs to request it from you, which requries
+someone else needs to request it from you, which requires
 both peers to be online at the same time.
 
 To address this, we have a `push` method. "pushing" a blob,
@@ -85,6 +85,9 @@ It's probably safe to disable this now since most pubs will have updated by now.
 
 Maximum size of blobs to replicate.
 Note that if you set this too low, blobs will simply fail to be retrieved.
+
+## Usage
+This plugin is required by default by [ssb-server](https://github.com/ssbc/ssb-server) and doesn't need to be added to your system if you're using a standard Secure Scuttlebutt install. If you're rolling your own, please refer to [the documentation in `plugins.md` in the `secret-stack` repository](https://github.com/ssbc/secret-stack/blob/master/plugins.md) for how to create your own peer-to-peer solution that uses this plugin.
 
 ## License
 
