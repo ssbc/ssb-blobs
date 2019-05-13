@@ -1,7 +1,7 @@
 {
   "name": "ssb-blobs",
   "description": "blobs and blob replication for ssb",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "homepage": "https://github.com/ssbc/ssb-blobs",
   "repository": {
     "type": "git",
