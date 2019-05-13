@@ -39,6 +39,17 @@ function onAbort(abortCb) {
   }
 }
 
+function toBlobId(id) {
+  if(Array.isArray(id)) return id//.map(toBlobId)
+  return isBlobId(id) ? id : isBlobId(id && id.id) ? id.id : null
+}
+
+function wrap (fn) {
+  return function (id, cb) {
+    return fn.call(this, toBlobId(id), cb)
+  }
+}
+
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
   //sympathy controls whether you'll replicate
@@ -56,13 +67,13 @@ module.exports = function inject (blobs, set, name, opts) {
   var available = {}, streams = {}
   var send = {}, timer
 
-  function queue (hash, hops) {
+  function queue (id, hops) {
     if(hops < 0)
-      want[hash] = hops
+      want[id] = hops
     else
-      delete want[hash]
+      delete want[id]
 
-    send[hash] = hops
+    send[id] = hops
     var _send = send;
     send = {}
     notify(_send)
@@ -245,43 +256,45 @@ module.exports = function inject (blobs, set, name, opts) {
   var self
   return self = {
     //id: name,
-    has: function (hash, cb) {
-      if(isArray(hash)) {
-        for(var i = 0; i < hash.length; i++)
-          if(!isBlobId(hash[i]))
-            return cb(new Error('invalid hash:'+hash[i]))
+    has: function (id, cb) {
+      id = toBlobId(id)
+
+      if(isArray(id)) {
+        for(var i = 0; i < id.length; i++)
+          if(!isBlobId(id[i]))
+            return cb(new Error('invalid id:'+id[i]))
       }
-      else if(!isBlobId(hash))
-        return cb(new Error('invalid hash:'+hash))
+      else if(!isBlobId(id))
+        return cb(new Error('invalid id:'+id))
 
       if(!legacy) {
-        blobs.has.call(this, hash, cb)
+        blobs.has.call(this, id, cb)
       }
       else {
       //LEGACY LEGACY LEGACY
         if(this === self || !this || this === global) { // a local call
-          return blobs.has.call(this, hash, cb)
+          return blobs.has.call(this, id, cb)
         }
         //ELSE, interpret remote calls to has as a WANT request.
         //handling this by calling process (which calls size())
         //avoids a race condition in the tests.
         //(and avoids doubling the number of calls)
-        var a = Array.isArray(hash) ? hash : [hash]
+        var a = Array.isArray(id) ? id : [id]
         var o = {}
         a.forEach(function (h) { o[h] = -1 })
         //since this is always "has" process will never use the second arg.
         process(o, null, function (err, res) {
           var a = []; for(var k in o) a.push(res[k] > 0)
-          cb(null, Array.isArray(hash) ? a : a[0])
+          cb(null, Array.isArray(id) ? a : a[0])
         })
       //LEGACY LEGACY LEGACY
       }
     },
-    size: blobs.size,
+    size: wrap(blobs.size),
     get: blobs.get,
     getSlice: blobs.getSlice,
-    add: blobs.add,
-    rm: blobs.rm,
+    add: wrap(blobs.add),
+    rm: wrap(blobs.rm),
     ls: blobs.ls,
     changes: function () {
       //XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
@@ -292,32 +305,35 @@ module.exports = function inject (blobs, set, name, opts) {
         })
       )
     },
-    want: function (hash, cb) {
-      if(!isBlobId(hash)) 
-        return cb(new Error('invalid hash:'+hash))
+    want: function (id, cb) {
+      id = toBlobId(id)
+      if(!isBlobId(id))
+        return cb(new Error('invalid id:'+id))
       //always broadcast wants immediately, because of race condition
       //between has and adding a blob (needed to pass test/async.js)
-      if(blobs.isEmptyHash(hash)) return cb(null, true)
-      var id = isAvailable(hash)
+      if(blobs.isEmptyHash(id)) return cb(null, true)
 
-      if(waiting[hash])
-        waiting[hash].push(cb)
+      var peerId = isAvailable(id)
+
+      if(waiting[id])
+        waiting[id].push(cb)
       else {
-        waiting[hash] = [cb]
-        blobs.size(hash, function (err, size) {
+        waiting[id] = [cb]
+        blobs.size(id, function (err, size) {
           if(size != null) {
-            while(waiting[hash].length)
-              waiting[hash].shift()(null, true)
-            delete waiting[hash]
+            while(waiting[id].length)
+              waiting[id].shift()(null, true)
+            delete waiting[id]
           }
         })
       }
 
-      if(!id && waiting[hash]) queue(hash, -1)
+      if(!peerId && waiting[id]) queue(id, -1)
 
-      if(id) return get(id, hash)
+      if(peerId) return get(peerId, id)
     },
     push: function (id, cb) {
+      id = toBlobId(id)
       //also store the id to push.
       if(!isBlobId(id)) 
         return cb(new Error('invalid hash:'+id))
@@ -341,7 +357,11 @@ module.exports = function inject (blobs, set, name, opts) {
       //process is called when wantSync
       //doesn't immediately get an error.
       pull(other.blobs.createWants(), wantSink(other))
+    },
+    help: function () {
+      return require('./help')
     }
   }
 }
+
 
