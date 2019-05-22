@@ -14,6 +14,7 @@ module.exports = function (createBlobs, createAsync) {
   //client is legacy. call has on a peer, should emit want({<id>: -2})
 
   tape('legacy calls modern', function (t) {
+    var calledAddCB = false
     createAsync(function (async) {
       //legacy tests
 
@@ -55,17 +56,21 @@ module.exports = function (createBlobs, createAsync) {
         t.equal(value, false)
         pull(pull.once(blob), modern.add(function (err, hash) {
           if(err) throw err
+          assert.equal(h, hash)
+          calledAddCB = true
         }))
       })
 
     }, function (err) {
       if(err) throw err
+      t.true(calledAddCB)
       t.end()
     })
 
   })
 
   tape('modern calls legacy', function (t) {
+    var calledAddCB = false
     createAsync(function (async) {
 
       var modern = createBlobs('modern', async)
@@ -98,11 +103,13 @@ module.exports = function (createBlobs, createAsync) {
       pull(pull.once(blob), legacy.add(function (err, _h) {
         assert.equal(_h, h)
         debug('ADDED', _h)
+        calledAddCB = true
       }))
 
     }, function (err) {
       debug(err)
       if(err) throw err
+      t.true(calledAddCB)
       t.end()
     })
   })
