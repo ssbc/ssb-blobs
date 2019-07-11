@@ -46,6 +46,10 @@ function toBlobId(id) {
 
 function wrap (fn) {
   return function (id, cb) {
+    if (!toBlobId(id)) {
+      cb = id
+      return fn.call(this, cb)
+    }
     return fn.call(this, toBlobId(id), cb)
   }
 }
@@ -293,7 +297,7 @@ module.exports = function inject (blobs, set, name, opts) {
     size: wrap(blobs.size),
     get: blobs.get,
     getSlice: blobs.getSlice,
-    add: blobs.add,
+    add: wrap(blobs.add),
     rm: wrap(blobs.rm),
     ls: blobs.ls,
     changes: function () {
