@@ -293,7 +293,7 @@ module.exports = function inject (blobs, set, name, opts) {
     size: wrap(blobs.size),
     get: blobs.get,
     getSlice: blobs.getSlice,
-    add: wrap(blobs.add),
+    add: blobs.add,
     rm: wrap(blobs.rm),
     ls: blobs.ls,
     changes: function () {
@@ -335,7 +335,7 @@ module.exports = function inject (blobs, set, name, opts) {
     push: function (id, cb) {
       id = toBlobId(id)
       //also store the id to push.
-      if(!isBlobId(id)) 
+      if(!isBlobId(id))
         return cb(new Error('invalid hash:'+id))
 
       push[id] = push[id] || {}
