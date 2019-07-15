@@ -40,9 +40,10 @@ tape('alice pushes to bob', function (t) {
 
     pull(
       bob.blobs.ls({live: true, long: true}),
-      pull.take(2),
+      pull.filter((msg) => !msg.sync),
+      pull.take(1),
       pull.collect(function (err, ary) {
-        t.equal(ary[1].id, _hash)
+        t.equal(ary[0].id, _hash)
         t.end()
         alice.close()
         bob.close()
