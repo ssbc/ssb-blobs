@@ -46,6 +46,10 @@ function toBlobId(id) {
 
 function wrap (fn) {
   return function (id, cb) {
+    if (!toBlobId(id)) {
+      cb = id
+      return fn.call(this, cb)
+    }
     return fn.call(this, toBlobId(id), cb)
   }
 }
@@ -335,7 +339,7 @@ module.exports = function inject (blobs, set, name, opts) {
     push: function (id, cb) {
       id = toBlobId(id)
       //also store the id to push.
-      if(!isBlobId(id)) 
+      if(!isBlobId(id))
         return cb(new Error('invalid hash:'+id))
 
       push[id] = push[id] || {}
