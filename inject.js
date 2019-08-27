@@ -89,7 +89,7 @@ module.exports = function inject (blobs, set, name, opts) {
         return peer
   }
 
-  function get (peer, id, name) {
+  function get (peer, id) {
     if(getting[id] || !peers[peer]) return
 
     getting[id] = peer
@@ -100,7 +100,7 @@ module.exports = function inject (blobs, set, name, opts) {
         if(available[peer]) delete available[peer][id]
         //check if another peer has this.
         //if so get it from them.
-        if(peer = isAvailable(id)) get(peer, id, name)
+        if(peer = isAvailable(id)) get(peer, id)
       }
     }))
   }
