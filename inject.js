@@ -249,11 +249,8 @@ module.exports = function inject (blobs, set, name, opts) {
       //then can refactor legacy handling out of sight.
 
       //handle error and fallback to legacy mode, if enabled.
-      else if(peers[peer.id] == peer) {
-        delete peers[peer.id]
-        delete available[peer.id]
-        delete streams[peer.id]
-      }
+      else if(peers[peer.id] == peer)
+        dead(peer.id)
     })
   }
 
