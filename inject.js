@@ -234,27 +234,27 @@ module.exports = function inject (blobs, set, name, opts) {
 
     var modern = false
     return pull.drain(function (data) {
-        modern = true
-        //respond with list of blobs you already have,
-        process(data, peer.id, function (err, has_data) {
-          //(if you have any)
-          if(!isEmpty(has_data) && streams[peer.id]) streams[peer.id].push(has_data)
-        })
-      }, function (err) {
-        if(err && !modern) {
-          streams[peer.id] = false
-          if(legacy) legacySync(peer)
-        }
-        //if can handle unpeer another way,
-        //then can refactor legacy handling out of sight.
-
-        //handle error and fallback to legacy mode, if enabled.
-        else if(peers[peer.id] == peer) {
-          delete peers[peer.id]
-          delete available[peer.id]
-          delete streams[peer.id]
-        }
+      modern = true
+      //respond with list of blobs you already have,
+      process(data, peer.id, function (err, has_data) {
+        //(if you have any)
+        if(!isEmpty(has_data) && streams[peer.id]) streams[peer.id].push(has_data)
       })
+    }, function (err) {
+      if(err && !modern) {
+        streams[peer.id] = false
+        if(legacy) legacySync(peer)
+      }
+      //if can handle unpeer another way,
+      //then can refactor legacy handling out of sight.
+
+      //handle error and fallback to legacy mode, if enabled.
+      else if(peers[peer.id] == peer) {
+        delete peers[peer.id]
+        delete available[peer.id]
+        delete streams[peer.id]
+      }
+    })
   }
 
   var self
