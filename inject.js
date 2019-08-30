@@ -4,12 +4,6 @@ function isEmpty (o) {
   return true
 }
 
-function isInteger (i) {
-  return Number.isInteger(i)
-}
-
-var isArray = Array.isArray
-
 var Notify = require('pull-notify')
 var pull = require('pull-stream')
 var isBlobId = require('ssb-ref').isBlob
@@ -22,12 +16,6 @@ function clone (obj) {
   for(var k in obj)
     o[k] = obj[k]
   return o
-}
-
-function count(obj) {
-  var c = 0
-  for(var k in obj) c++
-  return c
 }
 
 function onAbort(abortCb) {
@@ -136,7 +124,7 @@ module.exports = function inject (blobs, set, name, opts) {
     //if N peers have it, we can stop broadcasting.
     if(push[id]) {
       push[id][peer_id] = size
-      if(count(push[id]) >= pushy) {
+      if(Object.keys(push[id]).length >= pushy) {
         var data = {key: id, peers: push[id]}
         set.remove(id)
         delete push[id]; pushed(data)
@@ -148,7 +136,7 @@ module.exports = function inject (blobs, set, name, opts) {
   function process (data, peer, cb) {
     var n = 0, res = {}
     for(var id in data) (function (id) {
-      if(isBlobId(id) && isInteger(data[id])) {
+      if(isBlobId(id) && Number.isInteger(data[id])) {
         if(data[id] < 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
           n++
           //check whether we already *HAVE* this file.
@@ -260,7 +248,7 @@ module.exports = function inject (blobs, set, name, opts) {
     has: function (id, cb) {
       id = toBlobId(id)
 
-      if(isArray(id)) {
+      if(Array.isArray(id)) {
         for(var i = 0; i < id.length; i++)
           if(!isBlobId(id[i]))
             return cb(new Error('invalid id:'+id[i]))
