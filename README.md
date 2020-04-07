@@ -1,6 +1,6 @@
 # ssb-blobs
 
-Protocol for gossiping "blobs", in no particular order. This is a plugin for [secret-stack](https://github.com/ssbc/secret-stack) and such general information about these type of plugins is [documented in `plugins.md` in that repository](https://github.com/ssbc/secret-stack/blob/master/plugins.md).
+Protocol for gossiping "blobs", in no particular order. This is a plugin for [secret-stack](https://github.com/ssbc/secret-stack) and such general information about these type of plugins is [documented in `plugins.md` in that repository](https://github.com/ssbc/secret-stack/blob/master/PLUGINS.md).
 
 ## Protocol
 
