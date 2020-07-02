@@ -13,14 +13,14 @@ function hash (s) {
 
 var appkey = hash('TESTBLOBS')
 
-var create = SecretStack({ caps: {shs: appkey} }).use(require('../'))
+var create = SecretStack({ caps: {shs: appkey} })
+  .use(require('../'))
 
 function tmp (name) {
   var dir = path.join(osenv.tmpdir(), 'testblobs-'+Date.now()+'-'+name)
   mkdirp.sync(dir)
   return dir
 }
-
 
 tape('alice pushes to bob', function (t) {
   var alice = create({ seed: hash('ALICE'), path: tmp('alice') })
@@ -60,3 +60,14 @@ tape('alice pushes to bob', function (t) {
   })
 })
 
+tape('close', t => {
+  var path = tmp('alice')
+  var alice = create({ seed: hash('ALICE'), path })
+
+  alice.close((err) => {
+    t.error(err)
+
+    var alice = create({ seed: hash('ALICE'), path })
+    alice.close(t.end)
+  })
+})

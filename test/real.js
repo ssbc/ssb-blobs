@@ -1,8 +1,6 @@
-
 var rimraf = require('rimraf')
 var osenv  = require('osenv')
 var path   = require('path')
-var ref    = require('ssb-ref')
 var mkdirp = require('mkdirp')
 var level  = require('level')
 
@@ -26,11 +24,7 @@ function test_create(name, async) {
 //since we are using the real FS this time,
 //we don't need to apply fake async.
 var sync = require('./util').sync
-require('./simple')(test_create, sync)
-require('./integration')(test_create, sync)
-require('./legacy')(test_create, sync)
-require('./push')(test_create, sync)
-
-
-
-
+require('./suite/simple')(test_create, sync)
+require('./suite/integration')(test_create, sync)
+require('./suite/legacy')(test_create, sync)
+require('./suite/push')(test_create, sync)
