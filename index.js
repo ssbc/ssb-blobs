@@ -25,13 +25,15 @@ exports.name = 'blobs'
 exports.version = require('./package.json').version
 
 exports.permissions = {
-    anonymous: {allow: ['has', 'get', 'getSlice', 'changes', 'createWants']},
+  anonymous: { allow: ['has', 'get', 'getSlice', 'changes', 'createWants'] }
 }
 
 exports.init = function (sbot, config) {
+  const level = Level(path.join(config.path, 'blobs_push'), { valueEncoding: 'json' })
+
   var blobs = Inject(
     create(path.join(config.path, 'blobs')),
-    Set(Level(path.join(config.path, 'blobs_push'), {valueEncoding: 'json'})),
+    Set(level),
     sbot.id,
     config.blobs
   )
@@ -40,6 +42,10 @@ exports.init = function (sbot, config) {
     if (rpc.id === sbot.id) return
     blobs._onConnect(rpc, rpc.id)
   })
+
+  sbot.close.hook(function (fn, args) {
+    level.close(() => fn(...args))
+  })
+
   return blobs
 }
-

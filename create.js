@@ -7,7 +7,7 @@ function desigil (hash) {
 }
 
 function resigil (hash) {
-  return isBlob(hash) ? hash : '&'+hash
+  return isBlob(hash) ? hash : '&' + hash
 }
 
 module.exports = function (dir) {
@@ -23,5 +23,3 @@ module.exports = function (dir) {
     isHash: isBlob
   })
 }
-
-

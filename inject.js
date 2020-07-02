@@ -1,6 +1,6 @@
 'use strict'
 function isEmpty (o) {
-  for(var k in o) return false
+  for (var k in o) return false
   return true
 }
 
@@ -8,17 +8,16 @@ var Notify = require('pull-notify')
 var pull = require('pull-stream')
 var isBlobId = require('ssb-ref').isBlob
 
-var MB = 1024*1024
-var MAX_SIZE = 5*MB
+// var MB = 1024 * 1024
+// var MAX_SIZE = 5 * MB
 
 function clone (obj) {
   var o = {}
-  for(var k in obj)
-    o[k] = obj[k]
+  for (var k in obj) { o[k] = obj[k] }
   return o
 }
 
-function onAbort(abortCb) {
+function onAbort (abortCb) {
   return function (read) {
     return function (abort, cb) {
       if (abort) abortCb(abort, cb)
@@ -27,8 +26,8 @@ function onAbort(abortCb) {
   }
 }
 
-function toBlobId(id) {
-  if(Array.isArray(id)) return id//.map(toBlobId)
+function toBlobId (id) {
+  if (Array.isArray(id)) return id// .map(toBlobId)
   return isBlobId(id) ? id : isBlobId(id && id.id) ? id.id : null
 }
 
@@ -44,117 +43,115 @@ function wrap (fn) {
 
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
-  //sympathy controls whether you'll replicate
+  // sympathy controls whether you'll replicate
   var sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
   var stingy = opts.stingy === true
   var legacy = opts.legacy !== false
   var pushy = opts.pushy || 3
-  var max = opts.max || 5*1024*1024
+  var max = opts.max || 5 * 1024 * 1024
 
   var notify = Notify()
   var pushed = Notify()
 
   var peers = {}
-  var want = {}, push = {}, waiting = {}, getting = {}
-  var available = {}, streams = {}
-  var send = {}, timer
+  var want = {}; var push = {}; var waiting = {}; var getting = {}
+  var available = {}; var streams = {}
+  var send = {}; var timer
 
   function queue (id, hops) {
-    if(hops < 0)
-      want[id] = hops
-    else
-      delete want[id]
+    if (hops < 0) { want[id] = hops } else { delete want[id] }
 
     send[id] = hops
-    var _send = send;
+    var _send = send
     send = {}
     notify(_send)
   }
 
-  function isAvailable(id) {
-    for(var peer in peers)
-      if(available[peer] && available[peer][id] < max && peers[peer])
-        return peer
+  function isAvailable (id) {
+    for (var peer in peers) {
+      if (available[peer] && available[peer][id] < max && peers[peer]) { return peer }
+    }
   }
 
   function get (peer, id) {
-    if(getting[id] || !peers[peer]) return
+    if (getting[id] || !peers[peer]) return
 
     getting[id] = peer
-    var source = peers[peer].blobs.get({key: id, max: max})
+    var source = peers[peer].blobs.get({ key: id, max: max })
     pull(source, blobs.add(id, function (err, _id) {
       delete getting[id]
-      if(err) {
-        if(available[peer]) delete available[peer][id]
-        //check if another peer has this.
-        //if so get it from them.
-        if(peer = isAvailable(id)) get(peer, id)
+      if (err) {
+        if (available[peer]) delete available[peer][id]
+        // check if another peer has this.
+        // if so get it from them.
+        if (peer = isAvailable(id)) get(peer, id)
       }
     }))
   }
 
   function wants (peer, id, hops) {
-    if(Math.abs(hops) > sympathy) return //sorry!
-    if(!want[id] || want[id] < hops) {
+    if (Math.abs(hops) > sympathy) return // sorry!
+    if (!want[id] || want[id] < hops) {
       want[id] = hops
       queue(id, hops)
-      if(peer = isAvailable(id)) {
+      if (peer = isAvailable(id)) {
         get(peer, id)
       }
     }
   }
 
   pull(
-    blobs.ls({old: false, meta: true}),
+    blobs.ls({ old: false, meta: true }),
     pull.drain(function (data) {
       queue(data.id, data.size)
       delete want[data.id]
-      if(waiting[data.id])
-        while(waiting[data.id].length)
-          waiting[data.id].shift()(null, true)
+      if (waiting[data.id]) {
+        while (waiting[data.id].length) { waiting[data.id].shift()(null, true) }
+      }
     })
   )
 
-  function has(peer_id, id, size) {
-    if('string' !== typeof peer_id) throw new Error('peer must be string id')
+  function has (peer_id, id, size) {
+    if (typeof peer_id !== 'string') throw new Error('peer must be string id')
     available[peer_id] = available[peer_id] || {}
     available[peer_id][id] = size
-    //if we are broadcasting this blob,
-    //mark this peer has it.
-    //if N peers have it, we can stop broadcasting.
-    if(push[id]) {
+    // if we are broadcasting this blob,
+    // mark this peer has it.
+    // if N peers have it, we can stop broadcasting.
+    if (push[id]) {
       push[id][peer_id] = size
-      if(Object.keys(push[id]).length >= pushy) {
-        var data = {key: id, peers: push[id]}
+      if (Object.keys(push[id]).length >= pushy) {
+        var data = { key: id, peers: push[id] }
         set.remove(id)
         delete push[id]; pushed(data)
       }
     }
-    if(want[id] && !getting[id] && size < max) get(peer_id, id)
+    if (want[id] && !getting[id] && size < max) get(peer_id, id)
   }
 
   function process (data, peer, cb) {
-    var n = 0, res = {}
-    for(var id in data) (function (id) {
-      if(isBlobId(id) && Number.isInteger(data[id])) {
-        if(data[id] < 0 && (opts.stingy !== true || push[id])) { //interpret as "WANT"
-          n++
-          //check whether we already *HAVE* this file.
-          //respond with it's size, if we do.
-          blobs.size(id, function (err, size) { //XXX
-            if(size) res[id] = size
-            else wants(peer, id, data[id] - 1)
-            next()
-          })
+    var n = 0; var res = {}
+    for (var id in data) {
+      (function (id) {
+        if (isBlobId(id) && Number.isInteger(data[id])) {
+          if (data[id] < 0 && (opts.stingy !== true || push[id])) { // interpret as "WANT"
+            n++
+            // check whether we already *HAVE* this file.
+            // respond with it's size, if we do.
+            blobs.size(id, function (err, size) { // XXX
+              if (size) res[id] = size
+              else wants(peer, id, data[id] - 1)
+              next()
+            })
+          } else if (data[id] > 0) { // interpret as "HAS"
+            has(peer, id, data[id])
+          }
         }
-        else if(data[id] > 0) { //interpret as "HAS"
-          has(peer, id, data[id])
-        }
-      }
-    }(id))
+      }(id))
+    }
 
     function next () {
-      if(--n) return
+      if (--n) return
       cb(null, res)
     }
   }
@@ -165,50 +162,52 @@ module.exports = function inject (blobs, set, name, opts) {
     delete streams[peer_id]
   }
 
-  //LEGACY LEGACY LEGACY
+  // LEGACY LEGACY LEGACY
   function legacySync (peer) {
-    if(!legacy) return
+    if (!legacy) return
 
-    var drain //we need to keep a reference to drain
-              //so we can abort it when we get an error.
+    var drain // we need to keep a reference to drain
+    // so we can abort it when we get an error.
     function hasLegacy (hashes) {
       var ary = Object.keys(hashes).filter(function (k) {
         return hashes[k] < 0
       })
-      if(ary.length)
+      if (ary.length) {
         peer.blobs.has(ary, function (err, haves) {
-          if(err) drain.abort(err) //ERROR: abort this stream.
-          else haves.forEach(function (have, i) {
-            if(have) has(peer.id, ary[i], have)
-          })
+          if (err) drain.abort(err) // ERROR: abort this stream.
+          else {
+            haves.forEach(function (have, i) {
+              if (have) has(peer.id, ary[i], have)
+            })
+          }
         })
+      }
     }
 
     function notPeer (err) {
-      if(err) dead(peer.id)
+      if (err) dead(peer.id)
     }
 
     drain = pull.drain(function (hash) {
       has(peer.id, hash, true)
     }, notPeer)
 
-
     pull(peer.blobs.changes(), drain)
 
     hasLegacy(want)
 
-    //a stream of hashes
+    // a stream of hashes
     pull(notify.listen(), pull.drain(hasLegacy, notPeer))
   }
-  //LEGACY LEGACY LEGACY
+  // LEGACY LEGACY LEGACY
 
   function createWantStream (id) {
-    if(!streams[id]) {
+    if (!streams[id]) {
       streams[id] = notify.listen()
 
-      //merge in ids we are pushing.
+      // merge in ids we are pushing.
       var w = clone(want)
-      for(var k in push) w[k] = -1
+      for (var k in push) w[k] = -1
       streams[id].push(w)
     }
     return pull(streams[id], onAbort(function (err, cb) {
@@ -218,65 +217,64 @@ module.exports = function inject (blobs, set, name, opts) {
   }
 
   function wantSink (peer) {
-    createWantStream(peer.id) //set streams[peer.id]
+    createWantStream(peer.id) // set streams[peer.id]
 
     var modern = false
-    return pull.drain(function (data) {
-      modern = true
-      //respond with list of blobs you already have,
-      process(data, peer.id, function (err, has_data) {
-        //(if you have any)
-        if(!isEmpty(has_data) && streams[peer.id]) streams[peer.id].push(has_data)
-      })
-    }, function (err) {
-      if(err && !modern) {
-        streams[peer.id] = false
-        if(legacy) legacySync(peer)
-      }
-      //if can handle unpeer another way,
-      //then can refactor legacy handling out of sight.
+    return pull.drain(
+      function (data) {
+        modern = true
+        // respond with list of blobs you already have,
+        process(data, peer.id, function (err, has_data) {
+          // (if you have any)
+          if (!isEmpty(has_data) && streams[peer.id]) streams[peer.id].push(has_data)
+        })
+      },
+      function (err) {
+        if (err && !modern) {
+          streams[peer.id] = false
+          if (legacy) legacySync(peer)
+        }
+        // if can handle unpeer another way,
+        // then can refactor legacy handling out of sight.
 
-      //handle error and fallback to legacy mode, if enabled.
-      else if(peers[peer.id] == peer)
-        dead(peer.id)
-    })
+        // handle error and fallback to legacy mode, if enabled.
+        else if (peers[peer.id] == peer) { dead(peer.id) }
+      }
+    )
   }
 
   var self
   return self = {
-    //id: name,
+    // id: name,
     has: function (id, cb) {
       id = toBlobId(id)
 
-      if(Array.isArray(id)) {
-        for(var i = 0; i < id.length; i++)
-          if(!isBlobId(id[i]))
-            return cb(new Error('invalid id:'+id[i]))
-      }
-      else if(!isBlobId(id))
-        return cb(new Error('invalid id:'+id))
+      if (Array.isArray(id)) {
+        for (var i = 0; i < id.length; i++) {
+          if (!isBlobId(id[i])) { return cb(new Error('invalid id:' + id[i])) }
+        }
+      } else if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
 
-      if(!legacy) {
+      if (!legacy) {
         blobs.has.call(this, id, cb)
-      }
-      else {
-      //LEGACY LEGACY LEGACY
-        if(this === self || !this || this === global) { // a local call
+      } else {
+      // LEGACY LEGACY LEGACY
+        if (this === self || !this || this === global) { // a local call
           return blobs.has.call(this, id, cb)
         }
-        //ELSE, interpret remote calls to has as a WANT request.
-        //handling this by calling process (which calls size())
-        //avoids a race condition in the tests.
-        //(and avoids doubling the number of calls)
+        // ELSE, interpret remote calls to has as a WANT request.
+        // handling this by calling process (which calls size())
+        // avoids a race condition in the tests.
+        // (and avoids doubling the number of calls)
         var a = Array.isArray(id) ? id : [id]
         var o = {}
         a.forEach(function (h) { o[h] = -1 })
-        //since this is always "has" process will never use the second arg.
+        // since this is always "has" process will never use the second arg.
         process(o, null, function (err, res) {
-          var a = []; for(var k in o) a.push(res[k] > 0)
+          var a = []; for (var k in o) a.push(res[k] > 0)
           cb(null, Array.isArray(id) ? a : a[0])
         })
-      //LEGACY LEGACY LEGACY
+      // LEGACY LEGACY LEGACY
       }
     },
     size: wrap(blobs.size),
@@ -286,9 +284,9 @@ module.exports = function inject (blobs, set, name, opts) {
     rm: wrap(blobs.rm),
     ls: blobs.ls,
     changes: function () {
-      //XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
+      // XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
       return pull(
-        blobs.ls({old: false, meta: false}),
+        blobs.ls({ old: false, meta: false }),
         pull.filter(function (id) {
           return !stingy || push[id]
         })
@@ -296,36 +294,31 @@ module.exports = function inject (blobs, set, name, opts) {
     },
     want: function (id, cb) {
       id = toBlobId(id)
-      if(!isBlobId(id))
-        return cb(new Error('invalid id:'+id))
-      //always broadcast wants immediately, because of race condition
-      //between has and adding a blob (needed to pass test/async.js)
-      if(blobs.isEmptyHash(id)) return cb(null, true)
+      if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
+      // always broadcast wants immediately, because of race condition
+      // between has and adding a blob (needed to pass test/async.js)
+      if (blobs.isEmptyHash(id)) return cb(null, true)
 
       var peerId = isAvailable(id)
 
-      if(waiting[id])
-        waiting[id].push(cb)
-      else {
+      if (waiting[id]) { waiting[id].push(cb) } else {
         waiting[id] = [cb]
         blobs.size(id, function (err, size) {
-          if(size != null) {
-            while(waiting[id].length)
-              waiting[id].shift()(null, true)
+          if (size != null) {
+            while (waiting[id].length) { waiting[id].shift()(null, true) }
             delete waiting[id]
           }
         })
       }
 
-      if(!peerId && waiting[id]) queue(id, -1)
+      if (!peerId && waiting[id]) queue(id, -1)
 
-      if(peerId) return get(peerId, id)
+      if (peerId) return get(peerId, id)
     },
     push: function (id, cb) {
       id = toBlobId(id)
-      //also store the id to push.
-      if(!isBlobId(id))
-        return cb(new Error('invalid hash:'+id))
+      // also store the id to push.
+      if (!isBlobId(id)) { return cb(new Error('invalid hash:' + id)) }
 
       push[id] = push[id] || {}
       queue(id, -1)
@@ -337,14 +330,14 @@ module.exports = function inject (blobs, set, name, opts) {
     createWants: function () {
       return createWantStream(this.id)
     },
-    //private api. used for testing. not exposed over rpc.
+    // private api. used for testing. not exposed over rpc.
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
-      //sending of your wants starts when you we know
-      //that they are not legacy style.
-      //process is called when wantSync
-      //doesn't immediately get an error.
+      // sending of your wants starts when you we know
+      // that they are not legacy style.
+      // process is called when wantSync
+      // doesn't immediately get an error.
       pull(other.blobs.createWants(), wantSink(other))
     },
     help: function () {
@@ -352,5 +345,3 @@ module.exports = function inject (blobs, set, name, opts) {
     }
   }
 }
-
-

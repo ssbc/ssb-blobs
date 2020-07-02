@@ -5,11 +5,10 @@ module.exports = function (db) {
   var set = {}
 
   pull(
-    pl.read(db, {live: true}),
+    pl.read(db, { live: true }),
     pull.drain(function (e) {
-      if(!e.sync)
-      if(e.type === 'del')
-        delete set[e.key]
+      if (!e.sync) {}
+      if (e.type === 'del') delete set[e.key]
       else set[e.key] = e.value
     })
   )
@@ -24,5 +23,3 @@ module.exports = function (db) {
     }
   }
 }
-
-
