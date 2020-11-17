@@ -128,7 +128,6 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('triangle', function (t) {
     createAsync(function (async) {
-      const n = 0
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
       const carol = createBlobs('carol', async)
@@ -159,7 +158,6 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('corrupt', function (t) {
     createAsync(function (async) {
-      const n = 0
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
       const carol = createBlobs('carol', async)
@@ -196,7 +194,6 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('cycle', function (t) {
     createAsync(function (async) {
-      const n = 0
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
       const carol = createBlobs('carol', async)
@@ -209,6 +206,7 @@ module.exports = function (createBlobs, createAsync) {
       const blob = Fake('gurg', 64)
       const h = hash(blob)
       alice.want(h, function (err, has) {
+        if (err) throw err
         async.done()
       })
 

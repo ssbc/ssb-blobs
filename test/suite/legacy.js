@@ -41,6 +41,7 @@ module.exports = function (createBlobs, createAsync) {
       pull(modern.changes(), pull.drain(function (hash) {
         assert.equal(hash, h)
         pull(modern.get(hash), pull.collect(function (err, ary) {
+          if (err) throw err
           assert.deepEqual(Buffer.concat(ary), blob)
           assert.equal(n, 3)
           async.done()
@@ -86,10 +87,12 @@ module.exports = function (createBlobs, createAsync) {
       const h = hash(blob)
 
       modern.want(h, function (err, has) {
+        if (err) throw err
         async.done()
       })
 
       pull(pull.once(blob), legacy.add(function (err, _h) {
+        if (err) throw err
         assert.equal(_h, h)
         debug('ADDED', _h)
       }))

@@ -21,7 +21,6 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('push 3', function (t) {
     createAsync(function (async) {
-      const n = 0
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
       const carol = createBlobs('carol', async)
@@ -34,19 +33,20 @@ module.exports = function (createBlobs, createAsync) {
       u.peers('alice', alice, 'carol', carol)
       u.peers('alice', alice, 'dan', dan)
 
-      pull(alice.pushed(), pull.drain(function (data) {
-        assert.deepEqual(data, { key: h, peers: { bob: 64, carol: 64, dan: 64 } })
-        debug('PUSHED', data)
-        cont.para([bob, carol, dan].map(function (p) {
-          return cont(p.has)(h)
-        }))
-        (function (err, ary) {
-          debug('HAS', err, ary)
-          if (err) throw err
-          assert.deepEqual(ary, [true, true, true])
-          async.done()
+      pull(
+        alice.pushed(),
+        pull.drain((data) => {
+          assert.deepEqual(data, { key: h, peers: { bob: 64, carol: 64, dan: 64 } })
+          debug('PUSHED', data)
+          cont.para([bob, carol, dan].map(p => cont(p.has)(h)))((err, ary) => {
+            if (err) throw err
+            debug('HAS', err, ary)
+            if (err) throw err
+            assert.deepEqual(ary, [true, true, true])
+            async.done()
+          })
         })
-      }))
+      )
 
       pull(pull.once(blob), alice.add())
       alice.push(h)

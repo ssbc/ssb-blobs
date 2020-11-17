@@ -7,7 +7,7 @@ module.exports = function (db) {
   pull(
     pl.read(db, { live: true }),
     pull.drain(function (e) {
-      if (!e.sync) {}
+      // if (!e.sync) {}
       if (e.type === 'del') delete set[e.key]
       else set[e.key] = e.value
     })

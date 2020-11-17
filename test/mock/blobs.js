@@ -6,7 +6,7 @@ const Notify = require('pull-notify')
 const assert = require('assert')
 
 function hash (buf) {
-  buf = typeof buf === 'string' ? new Buffer(buf) : buf
+  buf = typeof buf === 'string' ? Buffer.from(buf) : buf
   return '&' + crypto.createHash('sha256')
     .update(buf).digest('base64') + '.sha256'
 }
@@ -27,12 +27,12 @@ function single (fn) {
 
 module.exports = function MockBlobStore (name, async) {
   const notify = Notify()
-  const empty = hash(new Buffer(0))
+  const empty = hash(Buffer.alloc(0))
 
   const store = {}
   function add (buf, _h) {
     const h = hash(buf)
-    if (_h && _h != h) return false
+    if (_h && _h !== h) return false
     store[h] = buf
     return h
   }
@@ -71,7 +71,7 @@ module.exports = function MockBlobStore (name, async) {
       cb(null, !!store[blobId])
     })), 'has')),
     rm: single(toAsync(all(cont(function (blobId, cb) {
-      delete store[blobid]
+      delete store[blobId]
       cb(null)
     })), 'rm')),
     size: single(toAsync(all(cont(function (blobId, cb) {
@@ -81,17 +81,23 @@ module.exports = function MockBlobStore (name, async) {
     ls: function (opts) {
       // don't implement all the options, just the ones needed by ssb-blobs
       assert.equal(opts.old, false, 'must have old')
-      if (opts.meta) // used internally.
-      { return notify.listen() } else // used as blobs.changes (legacy api)
-      { return pull(notify.listen(), pull.map(function (e) { return e.id })) }
+      // used internally.
+      if (opts.meta) return notify.listen()
+      // used as blobs.changes (legacy api)
+      else {
+        return pull(
+          notify.listen(),
+          pull.map(function (e) { return e.id })
+        )
+      }
     },
     add: function (_hash, cb) {
-      if (typeof _hash === 'function') { cb = _hash, _hash = null }
-      if (!cb) {
-        cb = function (err) {
-          if (err) throw err
-        }
+      if (typeof _hash === 'function') {
+        cb = _hash
+        _hash = null
       }
+      if (!cb) cb = (err) => { if (err) throw err }
+
       return pull(async.through('add'), pull.collect(async(function (err, data) {
         if (err) return cb(err)
         data = Buffer.concat(data)

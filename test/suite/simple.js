@@ -76,6 +76,7 @@ module.exports = function (createBlobs, createAsync) {
         async.through(),
         pull.take(2),
         pull.collect(function (err, _res) {
+          if (err) throw err
           //        c++
           debug('END', c, _res)
           assert.deepEqual(_res, [{}, res])
