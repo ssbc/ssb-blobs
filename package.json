@@ -12,8 +12,6 @@
     "url": "git://github.com/ssbc/ssb-blobs.git"
   },
   "dependencies": {
-    "cont": "^1.0.3",
-    "debug": "^4.1.1",
     "level": "^6.0.0",
     "multiblob": "^1.12.0",
     "pull-level": "^2.0.4",
@@ -22,6 +20,8 @@
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {
+    "debug": "^4.1.1",
+    "cont": "^1.0.3",
     "interleavings": "^1.0.0",
     "mkdirp": "^0.5.1",
     "osenv": "^0.1.3",
