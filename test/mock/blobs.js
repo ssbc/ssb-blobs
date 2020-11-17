@@ -1,15 +1,9 @@
 const debug = require('debug')('ssb-blobs')
 const pull = require('pull-stream')
-const crypto = require('crypto')
 const cont = require('cont')
 const Notify = require('pull-notify')
 const assert = require('assert')
-
-function hash (buf) {
-  buf = typeof buf === 'string' ? Buffer.from(buf) : buf
-  return '&' + crypto.createHash('sha256')
-    .update(buf).digest('base64') + '.sha256'
-}
+const { hash } = require('../util')
 
 function single (fn) {
   const waiting = {}

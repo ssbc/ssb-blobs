@@ -1,8 +1,8 @@
-const create = require('./create')
 const path = require('path')
-const Inject = require('./inject')
-const Set = require('./set')
 const Level = require('level')
+const Set = require('./set')
+const create = require('./create')
+const Inject = require('./inject')
 
 exports.manifest = {
   get: 'source',

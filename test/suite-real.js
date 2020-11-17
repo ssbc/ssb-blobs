@@ -5,26 +5,28 @@ const mkdirp = require('mkdirp')
 const level = require('level')
 
 const Blobs = require('../inject')
-const create = require('../create')
+const Create = require('../create')
+const Set = require('../set')
 const { sync } = require('./util')
 
-function testCreate (name, async) {
+const createBlobs = (name, async) => {
   const dir = path.join(
     osenv.tmpdir(),
     'test-blobstore_' + name + '_' + Date.now() + Math.random()
   )
   rimraf.sync(dir)
   mkdirp.sync(dir)
+
   return Blobs(
-    create(dir),
-    require('../set')(level(dir, { valueEncoding: 'json' })),
+    Create(dir),
+    Set(level(dir, { valueEncoding: 'json' })),
     name
   )
 }
 
 // since we are using the real FS this time,
 // we don't need to apply fake async.
-require('./suite/simple')(testCreate, sync)
-require('./suite/integration')(testCreate, sync)
-require('./suite/legacy')(testCreate, sync)
-require('./suite/push')(testCreate, sync)
+require('./suite/simple')(createBlobs, sync)
+require('./suite/integration')(createBlobs, sync)
+require('./suite/legacy')(createBlobs, sync)
+require('./suite/push')(createBlobs, sync)

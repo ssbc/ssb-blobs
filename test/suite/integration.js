@@ -217,5 +217,3 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 }
-
-if (!module.parent) { u.tests(module.exports) }
