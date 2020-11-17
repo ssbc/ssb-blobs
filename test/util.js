@@ -1,6 +1,6 @@
 const debug = require('debug')('ssb-blobs')
-var pull = require('pull-stream')
-var crypto = require('crypto')
+const pull = require('pull-stream')
+const crypto = require('crypto')
 
 exports.log = function log (name) {
   if (!process.env.DEBUG) return pull.through()
@@ -11,32 +11,32 @@ exports.log = function log (name) {
 }
 
 function bindAll (obj, context) {
-  var o = {}
-  for (var k in obj) {
+  const o = {}
+  for (const k in obj) {
     if (obj[k]) o[k] = obj[k].bind(context)
   }
   return o
 }
 
 exports.peers = function (nameA, a, nameB, b, async) {
-  var na = nameA[0].toUpperCase()
-  var nb = nameB[0].toUpperCase()
-  //this is just a hack to fake rpc. over rpc each method is called
-  //with the remote id in the current this context.
-  a._onConnect({id: nameB, blobs: bindAll(b, {id: nameA})}, nb+na)
-  b._onConnect({id: nameA, blobs: bindAll(a, {id: nameB})}, na+nb)
+  const na = nameA[0].toUpperCase()
+  const nb = nameB[0].toUpperCase()
+  // this is just a hack to fake rpc. over rpc each method is called
+  // with the remote id in the current this context.
+  a._onConnect({ id: nameB, blobs: bindAll(b, { id: nameA }) }, nb + na)
+  b._onConnect({ id: nameA, blobs: bindAll(a, { id: nameB }) }, na + nb)
 }
 
 exports.hash = function (buf) {
-  buf = 'string' === typeof buf ? Buffer.from(buf) : buf
-  return '&'+crypto.createHash('sha256')
-            .update(buf).digest('base64')+'.sha256'
+  buf = typeof buf === 'string' ? Buffer.from(buf) : buf
+  return '&' + crypto.createHash('sha256')
+    .update(buf).digest('base64') + '.sha256'
 }
 
 exports.fake = function (string, length) {
-  var b = Buffer.alloc(length)
-  var n = Buffer.byteLength(string)
-  for (var i = 0; i < length; i += n) b.write(string, i)
+  const b = Buffer.alloc(length)
+  const n = Buffer.byteLength(string)
+  for (let i = 0; i < length; i += n) b.write(string, i)
   return b
 }
 

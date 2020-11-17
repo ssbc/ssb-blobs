@@ -1,8 +1,8 @@
-var interleavings = require('interleavings')
+const interleavings = require('interleavings')
 
-var Mock = require('./mock/blobs')
-var MockSet = require('./mock/set')
-var Blobs = require('../inject')
+const Mock = require('./mock/blobs')
+const MockSet = require('./mock/set')
+const Blobs = require('../inject')
 
 function create (name, async) {
   return Blobs(Mock(name, async), MockSet(async), name)

@@ -1,7 +1,7 @@
 const debug = require('debug')('ssb-blobs')
 module.exports = function (async) {
   debug(async)
-  var set = {}
+  const set = {}
   return {
     set: set,
     add: async(function (key, cb) {
@@ -14,8 +14,3 @@ module.exports = function (async) {
     })
   }
 }
-
-
-
-
-

@@ -1,19 +1,19 @@
 'use strict'
 function isEmpty (o) {
-  for (var k in o) return false
+  for (const k in o) return false
   return true
 }
 
-var Notify = require('pull-notify')
-var pull = require('pull-stream')
-var isBlobId = require('ssb-ref').isBlob
+const Notify = require('pull-notify')
+const pull = require('pull-stream')
+const isBlobId = require('ssb-ref').isBlob
 
 // var MB = 1024 * 1024
 // var MAX_SIZE = 5 * MB
 
 function clone (obj) {
-  var o = {}
-  for (var k in obj) { o[k] = obj[k] }
+  const o = {}
+  for (const k in obj) { o[k] = obj[k] }
   return o
 }
 
@@ -44,31 +44,31 @@ function wrap (fn) {
 module.exports = function inject (blobs, set, name, opts) {
   opts = opts || {}
   // sympathy controls whether you'll replicate
-  var sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
-  var stingy = opts.stingy === true
-  var legacy = opts.legacy !== false
-  var pushy = opts.pushy || 3
-  var max = opts.max || 5 * 1024 * 1024
+  const sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
+  const stingy = opts.stingy === true
+  const legacy = opts.legacy !== false
+  const pushy = opts.pushy || 3
+  const max = opts.max || 5 * 1024 * 1024
 
-  var notify = Notify()
-  var pushed = Notify()
+  const notify = Notify()
+  const pushed = Notify()
 
-  var peers = {}
-  var want = {}; var push = {}; var waiting = {}; var getting = {}
-  var available = {}; var streams = {}
-  var send = {}; var timer
+  const peers = {}
+  const want = {}; const push = {}; const waiting = {}; const getting = {}
+  const available = {}; const streams = {}
+  let send = {}; let timer
 
   function queue (id, hops) {
     if (hops < 0) { want[id] = hops } else { delete want[id] }
 
     send[id] = hops
-    var _send = send
+    const _send = send
     send = {}
     notify(_send)
   }
 
   function isAvailable (id) {
-    for (var peer in peers) {
+    for (const peer in peers) {
       if (available[peer] && available[peer][id] < max && peers[peer]) { return peer }
     }
   }
@@ -77,7 +77,7 @@ module.exports = function inject (blobs, set, name, opts) {
     if (getting[id] || !peers[peer]) return
 
     getting[id] = peer
-    var source = peers[peer].blobs.get({ key: id, max: max })
+    const source = peers[peer].blobs.get({ key: id, max: max })
     pull(source, blobs.add(id, function (err, _id) {
       delete getting[id]
       if (err) {
@@ -121,7 +121,7 @@ module.exports = function inject (blobs, set, name, opts) {
     if (push[id]) {
       push[id][peer_id] = size
       if (Object.keys(push[id]).length >= pushy) {
-        var data = { key: id, peers: push[id] }
+        const data = { key: id, peers: push[id] }
         set.remove(id)
         delete push[id]; pushed(data)
       }
@@ -130,8 +130,8 @@ module.exports = function inject (blobs, set, name, opts) {
   }
 
   function process (data, peer, cb) {
-    var n = 0; var res = {}
-    for (var id in data) {
+    let n = 0; const res = {}
+    for (const id in data) {
       (function (id) {
         if (isBlobId(id) && Number.isInteger(data[id])) {
           if (data[id] < 0 && (opts.stingy !== true || push[id])) { // interpret as "WANT"
@@ -166,10 +166,10 @@ module.exports = function inject (blobs, set, name, opts) {
   function legacySync (peer) {
     if (!legacy) return
 
-    var drain // we need to keep a reference to drain
+    let drain // we need to keep a reference to drain
     // so we can abort it when we get an error.
     function hasLegacy (hashes) {
-      var ary = Object.keys(hashes).filter(function (k) {
+      const ary = Object.keys(hashes).filter(function (k) {
         return hashes[k] < 0
       })
       if (ary.length) {
@@ -206,8 +206,8 @@ module.exports = function inject (blobs, set, name, opts) {
       streams[id] = notify.listen()
 
       // merge in ids we are pushing.
-      var w = clone(want)
-      for (var k in push) w[k] = -1
+      const w = clone(want)
+      for (const k in push) w[k] = -1
       streams[id].push(w)
     }
     return pull(streams[id], onAbort(function (err, cb) {
@@ -219,7 +219,7 @@ module.exports = function inject (blobs, set, name, opts) {
   function wantSink (peer) {
     createWantStream(peer.id) // set streams[peer.id]
 
-    var modern = false
+    let modern = false
     return pull.drain(
       function (data) {
         modern = true
@@ -243,14 +243,14 @@ module.exports = function inject (blobs, set, name, opts) {
     )
   }
 
-  var self
+  let self
   return self = {
     // id: name,
     has: function (id, cb) {
       id = toBlobId(id)
 
       if (Array.isArray(id)) {
-        for (var i = 0; i < id.length; i++) {
+        for (let i = 0; i < id.length; i++) {
           if (!isBlobId(id[i])) { return cb(new Error('invalid id:' + id[i])) }
         }
       } else if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
@@ -266,12 +266,12 @@ module.exports = function inject (blobs, set, name, opts) {
         // handling this by calling process (which calls size())
         // avoids a race condition in the tests.
         // (and avoids doubling the number of calls)
-        var a = Array.isArray(id) ? id : [id]
-        var o = {}
+        const a = Array.isArray(id) ? id : [id]
+        const o = {}
         a.forEach(function (h) { o[h] = -1 })
         // since this is always "has" process will never use the second arg.
         process(o, null, function (err, res) {
-          var a = []; for (var k in o) a.push(res[k] > 0)
+          const a = []; for (const k in o) a.push(res[k] > 0)
           cb(null, Array.isArray(id) ? a : a[0])
         })
       // LEGACY LEGACY LEGACY
@@ -299,7 +299,7 @@ module.exports = function inject (blobs, set, name, opts) {
       // between has and adding a blob (needed to pass test/async.js)
       if (blobs.isEmptyHash(id)) return cb(null, true)
 
-      var peerId = isAvailable(id)
+      const peerId = isAvailable(id)
 
       if (waiting[id]) { waiting[id].push(cb) } else {
         waiting[id] = [cb]

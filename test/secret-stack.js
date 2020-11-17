@@ -1,5 +1,5 @@
-var tape = require('tape')
-var pull = require('pull-stream')
+const tape = require('tape')
+const pull = require('pull-stream')
 const { hash, Server } = require('./util')
 
 // deterministic keys make testing easy.
@@ -8,8 +8,8 @@ const caps = {
 }
 
 tape('alice pushes to bob', function (t) {
-  var alice = Server({ seed: hash('ALICE'), caps })
-  var bob = Server({ seed: hash('BOB'), caps })
+  const alice = Server({ seed: hash('ALICE'), caps })
+  const bob = Server({ seed: hash('BOB'), caps })
 
   // Avoid race because of async server creation, introduced secret-stack@6.
   //
@@ -21,8 +21,8 @@ tape('alice pushes to bob', function (t) {
       if (err) throw err
     })
 
-    var hello = Buffer.from('Hello World')
-    var _hash
+    const hello = Buffer.from('Hello World')
+    let _hash
 
     pull(
       bob.blobs.ls({ live: true, long: true }),
@@ -50,12 +50,12 @@ tape('alice pushes to bob', function (t) {
 })
 
 tape('close', t => {
-  var alice = Server({ seed: hash('ALICE') })
+  const alice = Server({ seed: hash('ALICE') })
 
   alice.close((err) => {
     t.error(err)
 
-    var alice = Server({ seed: hash('ALICE'), startUnclean: true })
+    const alice = Server({ seed: hash('ALICE'), startUnclean: true })
     alice.close(t.end)
   })
 })

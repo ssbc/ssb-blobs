@@ -1,6 +1,6 @@
-var util = require('multiblob/util')
-var isBlob = require('ssb-ref').isBlob
-var MultiBlob = require('multiblob')
+const util = require('multiblob/util')
+const isBlob = require('ssb-ref').isBlob
+const MultiBlob = require('multiblob')
 
 function desigil (hash) {
   return isBlob(hash) ? hash.substring(1) : hash

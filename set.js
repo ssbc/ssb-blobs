@@ -1,8 +1,8 @@
-var pull = require('pull-stream')
-var pl = require('pull-level')
+const pull = require('pull-stream')
+const pl = require('pull-level')
 
 module.exports = function (db) {
-  var set = {}
+  const set = {}
 
   pull(
     pl.read(db, { live: true }),

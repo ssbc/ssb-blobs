@@ -1,13 +1,13 @@
-var tape = require('tape')
-var pull = require('pull-stream')
+const tape = require('tape')
+const pull = require('pull-stream')
 
-var u = require('./util')
+const u = require('./util')
 
 function run (createBlobs, createAsync) {
   tape('createWants does not error after abort', function (t) {
     createAsync(function (async) {
-      var blobs = createBlobs('simple', async)
-      var wants = blobs.createWants.call({ id: 'test' })
+      const blobs = createBlobs('simple', async)
+      const wants = blobs.createWants.call({ id: 'test' })
       // abort the want stream, and then make another one
       wants(new Error('abort'), function (err) {
         t.ok(err, 'wants aborted')

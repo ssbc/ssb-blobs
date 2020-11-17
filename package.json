@@ -5,7 +5,8 @@
   "homepage": "https://github.com/ssbc/ssb-blobs",
   "scripts": {
     "test": "tape test/*.js | tap-spec",
-    "test:classic": "set -e; for t in test/*.js; do node $t; done"
+    "test:classic": "set -e; for t in test/*.js; do node $t; done",
+    "lint": "standard --fix"
   },
   "repository": {
     "type": "git",
@@ -20,14 +21,15 @@
     "ssb-ref": "^2.3.0"
   },
   "devDependencies": {
-    "debug": "^4.1.1",
     "cont": "^1.0.3",
+    "debug": "^4.1.1",
     "interleavings": "^1.0.0",
     "mkdirp": "^0.5.1",
     "osenv": "^0.1.3",
     "pull-bitflipper": "^0.1.0",
     "rimraf": "^3.0.0",
     "scuttle-testbot": "^1.4.0",
+    "standard": "^16.0.2",
     "tap-spec": "^5.0.0",
     "tape": "^4.5.1"
   },

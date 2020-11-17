@@ -1,10 +1,10 @@
-var BlobId = {
+const BlobId = {
   type: 'BlobId',
   description: 'the hash of the blob, in ssb blob id format: &{hash-as-base64}.{hash-algorithum}',
   optional: false
 }
 
-var BlobOpts = {
+const BlobOpts = {
   id: BlobId
 }
 
@@ -15,7 +15,7 @@ module.exports = {
       type: 'sink',
       description: 'add a blob',
       args: {
-        id: Object.assign(BlobId, {optional: true})
+        id: Object.assign(BlobId, { optional: true })
       }
     },
     get: {
@@ -24,8 +24,8 @@ module.exports = {
       args: BlobOpts
     },
     getSlice: {
-      type: 'source'
-,     description: 'get part of a blob',
+      type: 'source',
+      description: 'get part of a blob',
       args: {
         id: BlobId,
         size: {
@@ -104,19 +104,3 @@ module.exports = {
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

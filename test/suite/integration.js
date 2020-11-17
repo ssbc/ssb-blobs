@@ -1,12 +1,12 @@
 const debug = require('debug')('ssb-blobs')
-var tape = require('tape')
-var pull = require('pull-stream')
-var bitflipper = require('pull-bitflipper')
-var assert = require('assert')
+const tape = require('tape')
+const pull = require('pull-stream')
+const bitflipper = require('pull-bitflipper')
+const assert = require('assert')
 
-var u = require('../util')
-var Fake = u.fake
-var hash = u.hash
+const u = require('../util')
+const Fake = u.fake
+const hash = u.hash
 
 module.exports = function (createBlobs, createAsync) {
   // function log (name) {
@@ -20,19 +20,19 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('want - has', function (t) {
     createAsync(function (async) {
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var blob = Fake('foobar', 64)
-      var h = hash(blob)
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const blob = Fake('foobar', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)//, async)
 
       alice.want(h, function (err, has) {
-        if(err) throw err
+        if (err) throw err
         debug('ALICE has?', h, has)
         alice.has(h, function (err, has) {
           debug('ALICE has!', h, has)
-          if(err) throw err
+          if (err) throw err
           assert.ok(has)
           async.done()
         })
@@ -40,51 +40,51 @@ module.exports = function (createBlobs, createAsync) {
 
       pull(pull.once(blob), bob.add())
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
   tape('want - has 2', function (t) {
     createAsync(function (async) {
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var blob = Fake('foobar', 64)
-      var h = hash(blob)
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const blob = Fake('foobar', 64)
+      const h = hash(blob)
 
       u.peers('bob', bob, 'alice', alice)
       pull(pull.once(blob), bob.add())
 
       alice.want(h, function (err, has) {
-        if(err) throw err
+        if (err) throw err
         alice.has(h, function (err, has) {
-          if(err) throw err
+          if (err) throw err
           assert.ok(has)
           async.done()
         })
       })
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
   tape('want - want -has', function (t) {
     createAsync(function (async) {
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
 
-      var blob = Fake('baz', 64)
-      var h = hash(blob)
+      const blob = Fake('baz', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
 
       alice.want(h, function (err, has) {
-        if(err) throw err
+        if (err) throw err
         alice.has(h, function (err, has) {
-          if(err) throw err
+          if (err) throw err
           assert.ok(has)
           async.done()
         })
@@ -92,22 +92,20 @@ module.exports = function (createBlobs, createAsync) {
 
       pull(pull.once(blob), carol.add())
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
-
   tape('peers want what you have', function (t) {
     createAsync(function (async) {
-      if(Array.isArray(process._events['exit']))
-        debug(process._events['exit'].reverse())
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
+      if (Array.isArray(process._events.exit)) { debug(process._events.exit.reverse()) }
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
 
-      var blob = Fake('baz', 64)
-      var h = hash(blob)
+      const blob = Fake('baz', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
@@ -123,21 +121,20 @@ module.exports = function (createBlobs, createAsync) {
       alice.want(h, function () {})
       pull(pull.once(blob), alice.add())
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
-
   tape('triangle', function (t) {
     createAsync(function (async) {
-      var n = 0
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
+      const n = 0
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
 
-      var blob = Fake('baz', 64)
-      var h = hash(blob)
+      const blob = Fake('baz', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
@@ -155,26 +152,26 @@ module.exports = function (createBlobs, createAsync) {
 
       bob.want(h, function () {})
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
   tape('corrupt', function (t) {
     createAsync(function (async) {
-      var n = 0
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
+      const n = 0
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
 
-      //everything that comes from bob is corrupt
-      var get = alice.get
+      // everything that comes from bob is corrupt
+      const get = alice.get
       alice.get = function (id) {
         return pull(get(id), bitflipper(1))
       }
 
-      var blob = Fake('baz', 64)
-      var h = hash(blob)
+      const blob = Fake('baz', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
@@ -192,38 +189,35 @@ module.exports = function (createBlobs, createAsync) {
       pull(pull.once(blob), alice.add())
       pull(pull.once(blob), carol.add())
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
 
   tape('cycle', function (t) {
     createAsync(function (async) {
-      var n = 0
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
-      var dan   = createBlobs('dan', async)
+      const n = 0
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
+      const dan = createBlobs('dan', async)
       u.peers('alice', alice, 'bob', bob)
       u.peers('bob', bob, 'carol', carol)
       u.peers('carol', carol, 'dan', dan)
       u.peers('dan', dan, 'alice', alice)
 
-      var blob = Fake('gurg', 64)
-      var h = hash(blob)
+      const blob = Fake('gurg', 64)
+      const h = hash(blob)
       alice.want(h, function (err, has) {
         async.done()
       })
 
       pull(pull.once(blob), dan.add(h))
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
-
   })
 }
 
-if(!module.parent)
-  u.tests(module.exports)
-
+if (!module.parent) { u.tests(module.exports) }

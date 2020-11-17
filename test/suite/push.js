@@ -1,11 +1,11 @@
 const debug = require('debug')('ssb-blobs')
-var tape = require('tape')
-var pull = require('pull-stream')
-var assert = require('assert')
-var cont = require('cont')
-var u = require('../util')
-var Fake = u.fake
-var hash = u.hash
+const tape = require('tape')
+const pull = require('pull-stream')
+const assert = require('assert')
+const cont = require('cont')
+const u = require('../util')
+const Fake = u.fake
+const hash = u.hash
 
 module.exports = function (createBlobs, createAsync) {
   /*
@@ -21,45 +21,40 @@ module.exports = function (createBlobs, createAsync) {
 
   tape('push 3', function (t) {
     createAsync(function (async) {
-      var n = 0
-      var alice = createBlobs('alice', async)
-      var bob   = createBlobs('bob', async)
-      var carol = createBlobs('carol', async)
-      var dan   = createBlobs('dan', async)
+      const n = 0
+      const alice = createBlobs('alice', async)
+      const bob = createBlobs('bob', async)
+      const carol = createBlobs('carol', async)
+      const dan = createBlobs('dan', async)
 
-      var blob = Fake('baz', 64)
-      var h = hash(blob)
+      const blob = Fake('baz', 64)
+      const h = hash(blob)
 
       u.peers('alice', alice, 'bob', bob)
       u.peers('alice', alice, 'carol', carol)
       u.peers('alice', alice, 'dan', dan)
 
       pull(alice.pushed(), pull.drain(function (data) {
-        assert.deepEqual(data, {key: h, peers: {bob: 64, carol: 64, dan: 64}})
-        debug("PUSHED", data)
+        assert.deepEqual(data, { key: h, peers: { bob: 64, carol: 64, dan: 64 } })
+        debug('PUSHED', data)
         cont.para([bob, carol, dan].map(function (p) {
           return cont(p.has)(h)
         }))
-          (function (err, ary) {
-            debug('HAS', err, ary)
-            if(err) throw err
-            assert.deepEqual(ary, [true, true, true])
-            async.done()
-          })
+        (function (err, ary) {
+          debug('HAS', err, ary)
+          if (err) throw err
+          assert.deepEqual(ary, [true, true, true])
+          async.done()
+        })
       }))
 
       pull(pull.once(blob), alice.add())
       alice.push(h)
-
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
-
 }
 
-if(!module.parent) u.tests(module.exports)
-
-
-
+if (!module.parent) u.tests(module.exports)

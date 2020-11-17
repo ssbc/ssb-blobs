@@ -1,35 +1,34 @@
 const debug = require('debug')('ssb-blobs')
-var tape = require('tape')
-var pull = require('pull-stream')
-var assert = require('assert')
+const tape = require('tape')
+const pull = require('pull-stream')
+const assert = require('assert')
 
-var u = require('../util')
-var Fake = u.fake
-var hash = u.hash
+const u = require('../util')
+const Fake = u.fake
+const hash = u.hash
 
 module.exports = function (createBlobs, createAsync) {
-
-  //client is legacy. call has on a peer, should emit want({<id>: -2})
+  // client is legacy. call has on a peer, should emit want({<id>: -2})
 
   tape('legacy calls modern', function (t) {
     createAsync(function (async) {
-      //legacy tests
+      // legacy tests
 
-      var n = 0
+      let n = 0
 
-      var modern = createBlobs('modern', async)
+      const modern = createBlobs('modern', async)
 
-      var blob = Fake('foo', 100)
-      var h = hash(blob)
+      const blob = Fake('foo', 100)
+      const h = hash(blob)
 
-      var first = {}
+      const first = {}
       first[h] = -2
-      var second = {}
+      const second = {}
       second[h] = blob.length
-      var expected = [{}, first, second]
+      const expected = [{}, first, second]
 
-      //the most important thing is that a modern blobs
-      //plugin emits 2nd hand hops when someone calls has(hash)
+      // the most important thing is that a modern blobs
+      // plugin emits 2nd hand hops when someone calls has(hash)
 
       pull(
         modern.createWants(),
@@ -48,30 +47,27 @@ module.exports = function (createBlobs, createAsync) {
         }))
       }))
 
-      modern.has.call({id: 'other'}, h, function (err, value) {
-        if(err) throw err
+      modern.has.call({ id: 'other' }, h, function (err, value) {
+        if (err) throw err
         t.equal(value, false)
         pull(pull.once(blob), modern.add(function (err, hash) {
-          if(err) throw err
+          if (err) throw err
         }))
       })
-
     }, function (err) {
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
-
   })
 
   tape('modern calls legacy', function (t) {
     createAsync(function (async) {
+      const modern = createBlobs('modern', async)
+      const legacy = createBlobs('legacy', async)
 
-      var modern = createBlobs('modern', async)
-      var legacy = createBlobs('legacy', async)
-
-      var size = legacy.size
+      const size = legacy.size
       legacy.size = function (hashes, cb) {
-        debug("CALLED_SIZE", hashes)
+        debug('CALLED_SIZE', hashes)
         size.call(this, hashes, function (err, value) {
           debug('SIZES', err, value)
           cb(err, value)
@@ -79,15 +75,15 @@ module.exports = function (createBlobs, createAsync) {
       }
 
       legacy.createWants = function () {
-        var err = new Error('cannot call apply of null')
+        const err = new Error('cannot call apply of null')
         err.name = 'TypeError'
         return pull.error(err)
       }
 
       u.peers('modern', modern, 'legacy', legacy)
 
-      var blob = Fake('bar', 101)
-      var h = hash(blob)
+      const blob = Fake('bar', 101)
+      const h = hash(blob)
 
       modern.want(h, function (err, has) {
         async.done()
@@ -97,16 +93,12 @@ module.exports = function (createBlobs, createAsync) {
         assert.equal(_h, h)
         debug('ADDED', _h)
       }))
-
     }, function (err) {
       debug(err)
-      if(err) throw err
+      if (err) throw err
       t.end()
     })
   })
-
 }
 
-if(!module.parent) u.tests(module.exports)
-
-
+if (!module.parent) u.tests(module.exports)
