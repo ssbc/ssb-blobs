@@ -41,7 +41,7 @@ function wrap (fn) {
   }
 }
 
-module.exports = function inject (blobs, set, name, opts) {
+module.exports = function inject (blobStore, blobPush, name, opts) {
   opts = opts || {}
   // sympathy controls whether you'll replicate
   const sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
@@ -54,12 +54,34 @@ module.exports = function inject (blobs, set, name, opts) {
   const pushed = Notify()
 
   const peers = {}
-  const want = {}; const push = {}; const waiting = {}; const getting = {}
-  const available = {}; const streams = {}
+  const want = {}
+  const waiting = {}
+  const getting = {}
+  const available = {}
+  const streams = {}
+  const push = {}
   let send = {}
 
+  function onReady (fn) {
+    return function _onReady (...args) {
+      if (!blobPush.state.isSync) {
+        return setTimeout(() => _onReady(...args), 100)
+      }
+      fn(...args)
+    }
+  }
+
+  const setPush = () => {
+    Object.keys(blobPush.state.set).forEach(blobId => {
+      if (blobId in push) return
+      push[blobId] = {}
+    })
+  }
+  onReady(setPush)()
+
   function queue (id, hops) {
-    if (hops < 0) { want[id] = hops } else { delete want[id] }
+    if (hops < 0) want[id] = hops
+    else delete want[id]
 
     send[id] = hops
     const _send = send
@@ -78,7 +100,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
     getting[id] = peer
     const source = peers[peer].blobs.get({ key: id, max: max })
-    pull(source, blobs.add(id, function (err, _id) {
+    pull(source, blobStore.add(id, function (err, _id) {
       delete getting[id]
       if (err) {
         if (available[peer]) delete available[peer][id]
@@ -101,7 +123,7 @@ module.exports = function inject (blobs, set, name, opts) {
   }
 
   pull(
-    blobs.ls({ old: false, meta: true }),
+    blobStore.ls({ old: false, meta: true }),
     pull.drain(function (data) {
       queue(data.id, data.size)
       delete want[data.id]
@@ -122,7 +144,7 @@ module.exports = function inject (blobs, set, name, opts) {
       push[id][peerId] = size
       if (Object.keys(push[id]).length >= pushy) {
         const data = { key: id, peers: push[id] }
-        set.remove(id)
+        blobPush.remove(id)
         delete push[id]; pushed(data)
       }
     }
@@ -138,7 +160,7 @@ module.exports = function inject (blobs, set, name, opts) {
             n++
             // check whether we already *HAVE* this file.
             // respond with it's size, if we do.
-            blobs.size(id, function (err, size) { // XXX
+            blobStore.size(id, function (err, size) { // XXX
               if (err) return cb(err)
 
               if (size) res[id] = size
@@ -259,11 +281,11 @@ module.exports = function inject (blobs, set, name, opts) {
       } else if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
 
       if (!legacy) {
-        blobs.has.call(this, id, cb)
+        blobStore.has.call(this, id, cb)
       } else {
       // LEGACY LEGACY LEGACY
         if (this === self || !this || this === global) { // a local call
-          return blobs.has.call(this, id, cb)
+          return blobStore.has.call(this, id, cb)
         }
         // ELSE, interpret remote calls to has as a WANT request.
         // handling this by calling process (which calls size())
@@ -281,16 +303,16 @@ module.exports = function inject (blobs, set, name, opts) {
       // LEGACY LEGACY LEGACY
       }
     },
-    size: wrap(blobs.size),
-    get: blobs.get,
-    getSlice: blobs.getSlice,
-    add: wrap(blobs.add),
-    rm: wrap(blobs.rm),
-    ls: blobs.ls,
+    size: wrap(blobStore.size),
+    get: blobStore.get,
+    getSlice: blobStore.getSlice,
+    add: wrap(blobStore.add),
+    rm: wrap(blobStore.rm),
+    ls: blobStore.ls,
     changes: function () {
       // XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
       return pull(
-        blobs.ls({ old: false, meta: false }),
+        blobStore.ls({ old: false, meta: false }),
         pull.filter(function (id) {
           return !stingy || push[id]
         })
@@ -301,13 +323,13 @@ module.exports = function inject (blobs, set, name, opts) {
       if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
       // always broadcast wants immediately, because of race condition
       // between has and adding a blob (needed to pass test/async.js)
-      if (blobs.isEmptyHash(id)) return cb(null, true)
+      if (blobStore.isEmptyHash(id)) return cb(null, true)
 
       const peerId = isAvailable(id)
 
       if (waiting[id]) { waiting[id].push(cb) } else {
         waiting[id] = [cb]
-        blobs.size(id, function (err, size) {
+        blobStore.size(id, function (err, size) {
           if (err) return cb(err)
           if (size != null) {
             while (waiting[id].length) { waiting[id].shift()(null, true) }
@@ -327,7 +349,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
       push[id] = push[id] || {}
       queue(id, -1)
-      set.add(id, cb)
+      blobPush.add(id, cb)
     },
     pushed: function () {
       return pushed.listen()

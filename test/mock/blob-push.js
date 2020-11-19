@@ -2,15 +2,19 @@ const debug = require('debug')('ssb-blobs')
 
 module.exports = function (async) {
   debug(async)
-  const set = {}
+
+  const state = {
+    set: {},
+    isSync: true
+  }
   return {
-    set: set,
+    state,
     add: async(function (key, cb) {
-      set[key] = true
+      state.set[key] = true
       cb && async(cb)()
     }),
     remove: async(function (key, cb) {
-      delete set[key]
+      delete state.set[key]
       cb && async(cb)()
     })
   }

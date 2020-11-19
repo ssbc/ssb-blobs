@@ -1,9 +1,9 @@
 const path = require('path')
+const Level = require('level')
 
 const Inject = require('./inject')
 const BlobStore = require('./blob-store')
-const Level = require('level')
-const Set = require('./set')
+const BlobPush = require('./blob-push')
 
 exports.manifest = {
   get: 'source',
@@ -31,14 +31,14 @@ exports.permissions = {
 
 exports.init = function (sbot, config) {
   const level = Level(path.join(config.path, 'blobs_push'), { valueEncoding: 'json' })
-
   const blobs = Inject(
     BlobStore(path.join(config.path, 'blobs')),
-    Set(level),
+    BlobPush(level),
     sbot.id,
     config.blobs
   )
 
+  // TODO only start this if blobs_push has been loaded into push
   sbot.on('rpc:connect', function (rpc) {
     if (rpc.id === sbot.id) return
     blobs._onConnect(rpc, rpc.id)

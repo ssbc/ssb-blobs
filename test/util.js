@@ -63,4 +63,3 @@ module.exports = {
   sync: noAsync,
   Server
 }
-

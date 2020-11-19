@@ -2,13 +2,13 @@ const tape = require('tape')
 const pull = require('pull-stream')
 
 const Blobs = require('../inject')
-const MockStore = require('./mock/blobs')
-const MockSet = require('./mock/set')
+const MockStore = require('./mock/blob-store')
+const MockPush = require('./mock/blob-push')
 const { sync } = require('./util')
 
 const createBlobs = (name, _async) => Blobs(
   MockStore(name, _async),
-  MockSet(_async),
+  MockPush(_async),
   name
 )
 

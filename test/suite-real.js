@@ -6,7 +6,7 @@ const level = require('level')
 
 const Blobs = require('../inject')
 const BlobStore = require('../blob-store')
-const Set = require('../set')
+const BlobPush = require('../blob-push')
 const { sync } = require('./util')
 
 const createBlobs = (name, async) => {
@@ -19,7 +19,7 @@ const createBlobs = (name, async) => {
 
   return Blobs(
     BlobStore(dir),
-    Set(level(dir, { valueEncoding: 'json' })),
+    BlobPush(level(dir, { valueEncoding: 'json' })),
     name
   )
 }

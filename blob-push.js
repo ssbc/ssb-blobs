@@ -2,19 +2,26 @@ const pull = require('pull-stream')
 const pl = require('pull-level')
 
 module.exports = function (db) {
-  const set = {}
+  const state = {
+    isSync: false,
+    set: {}
+  }
 
   pull(
-    pl.read(db, { live: true }),
+    pl.read(db, { live: true, old: true }),
     pull.drain(function (e) {
-      // if (!e.sync) {}
-      if (e.type === 'del') delete set[e.key]
-      else set[e.key] = e.value
+      if (e.sync === true) {
+        state.isSync = true
+        return
+      }
+
+      if (e.type === 'del') delete state.set[e.key]
+      else state.set[e.key] = e.value
     })
   )
 
   return {
-    set: set,
+    state,
     add: function (key, cb) {
       db.put(key, -1, cb)
     },
