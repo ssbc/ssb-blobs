@@ -5,7 +5,7 @@ const mkdirp = require('mkdirp')
 const level = require('level')
 
 const Blobs = require('../inject')
-const Create = require('../create')
+const BlobStore = require('../blob-store')
 const Set = require('../set')
 const { sync } = require('./util')
 
@@ -18,7 +18,7 @@ const createBlobs = (name, async) => {
   mkdirp.sync(dir)
 
   return Blobs(
-    Create(dir),
+    BlobStore(dir),
     Set(level(dir, { valueEncoding: 'json' })),
     name
   )

@@ -1,8 +1,9 @@
 const path = require('path')
+
+const Inject = require('./inject')
+const BlobStore = require('./blob-store')
 const Level = require('level')
 const Set = require('./set')
-const create = require('./create')
-const Inject = require('./inject')
 
 exports.manifest = {
   get: 'source',
@@ -32,7 +33,7 @@ exports.init = function (sbot, config) {
   const level = Level(path.join(config.path, 'blobs_push'), { valueEncoding: 'json' })
 
   const blobs = Inject(
-    create(path.join(config.path, 'blobs')),
+    BlobStore(path.join(config.path, 'blobs')),
     Set(level),
     sbot.id,
     config.blobs
