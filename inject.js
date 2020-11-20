@@ -176,45 +176,6 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
     delete streams[peerId]
   }
 
-  // LEGACY LEGACY LEGACY
-  function legacySync (peer) {
-    if (!legacy) return
-
-    let drain // eslint-disable-line
-    // we need to keep a reference to drain so we can abort it when we get an error.
-    function hasLegacy (hashes) {
-      const ary = Object.keys(hashes).filter(function (k) {
-        return hashes[k] < 0
-      })
-      if (ary.length) {
-        peer.blobs.has(ary, function (err, haves) {
-          if (err) drain.abort(err) // ERROR: abort this stream.
-          else {
-            haves.forEach(function (have, i) {
-              if (have) has(peer.id, ary[i], have)
-            })
-          }
-        })
-      }
-    }
-
-    function notPeer (err) {
-      if (err) dead(peer.id)
-    }
-
-    drain = pull.drain(function (hash) {
-      has(peer.id, hash, true)
-    }, notPeer)
-
-    pull(peer.blobs.changes(), drain)
-
-    hasLegacy(want)
-
-    // a stream of hashes
-    pull(notify.listen(), pull.drain(hasLegacy, notPeer))
-  }
-  // LEGACY LEGACY LEGACY
-
   function createWantStream (id) {
     if (!streams[id]) {
       streams[id] = notify.listen()
@@ -258,6 +219,45 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
       }
     )
   }
+  // LEGACY LEGACY LEGACY
+  function legacySync (peer) {
+    if (!legacy) return
+
+    let drain // eslint-disable-line
+    // we need to keep a reference to drain so we can abort it when we get an error.
+    function hasLegacy (hashes) {
+      const ary = Object.keys(hashes).filter(function (k) {
+        return hashes[k] < 0
+      })
+      if (ary.length) {
+        peer.blobs.has(ary, function (err, haves) {
+          if (err) drain.abort(err) // ERROR: abort this stream.
+          else {
+            haves.forEach(function (have, i) {
+              if (have) has(peer.id, ary[i], have)
+            })
+          }
+        })
+      }
+    }
+
+    function notPeer (err) {
+      if (err) dead(peer.id)
+    }
+
+    drain = pull.drain(function (hash) {
+      has(peer.id, hash, true)
+    }, notPeer)
+
+    pull(peer.blobs.changes(), drain)
+
+    hasLegacy(want)
+
+    // a stream of hashes
+    pull(notify.listen(), pull.drain(hasLegacy, notPeer))
+  }
+  // LEGACY LEGACY LEGACY
+
 
   const self = {
     // id: name,
@@ -270,28 +270,30 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
         }
       } else if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
 
-      if (!legacy) {
+      if (legacy !== true) {
         blobStore.has.call(this, id, cb)
-      } else {
-      // LEGACY LEGACY LEGACY
-        if (this === self || !this || this === global) { // a local call
-          return blobStore.has.call(this, id, cb)
-        }
-        // ELSE, interpret remote calls to has as a WANT request.
-        // handling this by calling process (which calls size())
-        // avoids a race condition in the tests.
-        // (and avoids doubling the number of calls)
-        const a = Array.isArray(id) ? id : [id]
-        const o = {}
-        a.forEach(function (h) { o[h] = -1 })
-        // since this is always "has" process will never use the second arg.
-        process(o, null, function (err, res) {
-          if (err) return cb(err)
-          const a = []; for (const k in o) a.push(res[k] > 0)
-          cb(null, Array.isArray(id) ? a : a[0])
-        })
-      // LEGACY LEGACY LEGACY
+        return
       }
+
+      console.log('LEGACY!')
+      // LEGACY LEGACY LEGACY
+      if (this === self || !this || this === global) { // a local call
+        return blobStore.has.call(this, id, cb)
+      }
+      // ELSE, interpret remote calls to has as a WANT request.
+      // handling this by calling process (which calls size())
+      // avoids a race condition in the tests.
+      // (and avoids doubling the number of calls)
+      const a = Array.isArray(id) ? id : [id]
+      const o = {}
+      a.forEach(function (h) { o[h] = -1 })
+      // since this is always "has" process will never use the second arg.
+      process(o, null, function (err, res) {
+        if (err) return cb(err)
+        const a = []; for (const k in o) a.push(res[k] > 0)
+        cb(null, Array.isArray(id) ? a : a[0])
+      })
+      // LEGACY LEGACY LEGACY
     },
     size: wrap(blobStore.size),
     get: blobStore.get,
@@ -353,13 +355,15 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
-      // sending of your wants starts when you we know
-      // that they are not legacy style.
-      // process is called when wantSync
-      // doesn't immediately get an error.
-      blobPush.onReady(() => {
-        pull(other.blobs.createWants(), wantSink(other))
-      })
+      // sending of your wants starts when we know they are not legacy style.
+      // process is called when wantSync doesn't immediately get an error.
+      // blobPush.onReady(() => {
+        pull(
+          other.blobs.createWants(),
+          // pull.through(m => console.log(name, m)),
+          wantSink(other)
+        )
+      // })
       // not sure why onReady is needed here but required for tests to pass
     },
     help: function () {
