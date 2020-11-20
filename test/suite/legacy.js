@@ -7,10 +7,10 @@ const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
-module.exports = function (createBlobs, createAsync) {
+module.exports = function (createBlobs, createAsync, groupName = '?') {
   // client is legacy. call has on a peer, should emit want({<id>: -2})
 
-  tape('legacy calls modern', function (t) {
+  tape(groupName + '/legacy - calls modern', function (t) {
     createAsync(function (async) {
       // legacy tests
 
@@ -21,39 +21,49 @@ module.exports = function (createBlobs, createAsync) {
       const blob = Fake('foo', 100)
       const h = hash(blob)
 
-      const first = {}
-      first[h] = -2
-      const second = {}
-      second[h] = blob.length
-      const expected = [{}, first, second]
+      const expected = [
+        {},
+        { [h]: -2 },
+        { [h]: blob.length }
+      ]
 
       // the most important thing is that a modern blobs
       // plugin emits 2nd hand hops when someone calls has(hash)
 
       pull(
         modern.createWants(),
-        pull.drain(function (req) {
+        pull.drain(req => {
           n++
-          assert.deepEqual(req, expected.shift())
+          t.deepEqual(req, expected.shift(), `createWants emits ${JSON.stringify(req)}`)
+          //if (n === 3) async.done()
         })
       )
 
-      pull(modern.changes(), pull.drain(function (hash) {
-        assert.equal(hash, h)
-        pull(modern.get(hash), pull.collect(function (err, ary) {
-          if (err) throw err
-          assert.deepEqual(Buffer.concat(ary), blob)
-          assert.equal(n, 3)
-          async.done()
-        }))
-      }))
+      pull(
+        modern.changes(),
+        pull.drain(hash => {
+          t.equal(hash, h, 'change stream emits hash')
+
+          pull(
+            modern.get(hash),
+            pull.collect((err, ary) => {
+              if (err) throw err
+              assert.deepEqual(Buffer.concat(ary), blob)
+            })
+          )
+        })
+      )
 
       modern.has.call({ id: 'other' }, h, function (err, value) {
         if (err) throw err
-        t.equal(value, false)
-        pull(pull.once(blob), modern.add(function (err, hash) {
-          if (err) throw err
-        }))
+        assert.equal(value, false)
+        pull(
+          pull.once(blob),
+          modern.add((err, hash) => {
+            if (err) throw err
+            t.equal(hash, h, 'add blob, confirm has same hash')
+          })
+        )
       })
     }, function (err) {
       if (err) throw err
@@ -61,7 +71,7 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
-  tape('modern calls legacy', function (t) {
+  tape(groupName + '/modern - calls legacy', function (t) {
     createAsync(function (async) {
       const modern = createBlobs('modern', async)
       const legacy = createBlobs('legacy', async)

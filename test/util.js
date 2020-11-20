@@ -1,6 +1,7 @@
 const debug = require('debug')('ssb-blobs')
 const pull = require('pull-stream')
 const crypto = require('crypto')
+const allowed = require('..').permissions.anonymous.allow
 
 function log (name) {
   if (!process.env.DEBUG) return pull.through()
@@ -10,7 +11,7 @@ function log (name) {
   })
 }
 
-function peers (nameA, a, nameB, b, async) {
+function peers (nameA, a, nameB, b) {
   const na = nameA[0].toUpperCase()
   const nb = nameB[0].toUpperCase()
   // this is just a hack to fake rpc. over rpc each method is called
@@ -21,7 +22,9 @@ function peers (nameA, a, nameB, b, async) {
 function bindAll (obj, context) {
   const o = {}
   for (const k in obj) {
-    if (obj[k]) o[k] = obj[k].bind(context)
+    if (allowed.includes(k)) { // simulate which RPC methods will be permitted
+      if (obj[k]) o[k] = obj[k].bind(context)
+    }
   }
   return o
 }
@@ -39,7 +42,9 @@ function fake (string, length) {
   return b
 }
 
-function noAsync (test, done) {
+// used as a createAsync method but is actually sync in this case
+// used in e.g. suite-real.js which has fully async stuff already
+function sync (test, done) {
   function async (fn) {
     return fn
   }
@@ -60,6 +65,6 @@ module.exports = {
   peers,
   hash,
   fake,
-  sync: noAsync,
+  sync,
   Server
 }

@@ -26,7 +26,8 @@ const createBlobs = (name, async) => {
 
 // since we are using the real FS this time,
 // we don't need to apply fake async.
-require('./suite/simple')(createBlobs, sync)
-require('./suite/integration')(createBlobs, sync)
-require('./suite/legacy')(createBlobs, sync)
-require('./suite/push')(createBlobs, sync)
+const name = 'REAL'
+require('./suite/simple')(createBlobs, sync, name)
+require('./suite/integration')(createBlobs, sync, name)
+require('./suite/legacy')(createBlobs, sync, name)
+require('./suite/push')(createBlobs, sync, name)

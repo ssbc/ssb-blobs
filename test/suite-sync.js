@@ -9,7 +9,8 @@ const createBlobs = (name, _async) => Blobs(
   name
 )
 
-require('./suite/integration')(createBlobs, sync)
-require('./suite/simple')(createBlobs, sync)
-require('./suite/push')(createBlobs, sync)
-require('./suite/legacy')(createBlobs, sync)
+const name = 'SYNC'
+require('./suite/integration')(createBlobs, sync, name)
+require('./suite/simple')(createBlobs, sync, name)
+require('./suite/push')(createBlobs, sync, name)
+require('./suite/legacy')(createBlobs, sync, name)

@@ -7,10 +7,10 @@ const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
-module.exports = function (createBlobs, createAsync) {
+module.exports = function (createBlobs, createAsync, groupName = '?') {
   // if a peer is recieves a WANT for a blob they have,
   // it responds with a HAS
-  tape('simple', function (t) {
+  tape(groupName + '/simple want', function (t) {
     createAsync(function (async) {
       const blobs = createBlobs('simple', async)
       debug(blobs)
@@ -18,7 +18,7 @@ module.exports = function (createBlobs, createAsync) {
       pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
         if (err) throw err
         debug('added', _h)
-        t.equal(_h, h)
+        assert.equal(_h, h)
 
         const req = {}
         req[h] = -1
@@ -51,7 +51,7 @@ module.exports = function (createBlobs, createAsync) {
 
   // if you receive a want, sympathetically want that too.
   // but only once.
-  tape('simple wants', function (t) {
+  tape(groupName + '/simple wants - sympathetic want', function (t) {
     createAsync(function (async) {
       const blobs = createBlobs('simple', async)
 
@@ -92,21 +92,20 @@ module.exports = function (createBlobs, createAsync) {
   })
 
   // if you want something, tell your peer.
-  tape('want', function (t) {
+  tape(groupName + '/simple want - tell a peer', function (t) {
     createAsync(function (async) {
       const blobs = createBlobs('want', async)
       const h = hash(Fake('foobar', 64))
-      const res = {}
-      res[h] = -1
+      const res = { [h]: -1 }
 
       pull(
         blobs.createWants.call({ id: 'test' }),
         async.through(),
-        pull.take(2),
+        pull.take(1),
         pull.collect(function (err, _res) {
           if (err) throw err
           // requests
-          assert.deepEqual(_res, [{}, res])
+          assert.deepEqual(_res, [res])
           async.done()
         })
       )
@@ -114,13 +113,13 @@ module.exports = function (createBlobs, createAsync) {
       blobs.want(h)
     }, function (err, results) {
       if (err) throw err
-      // t.deepEqual(_res, res)
+      // assert.deepEqual(_res, res)
       t.end()
     })
   })
 
   // if you want something, tell your peer.
-  tape('already wanted, before connection', function (t) {
+  tape(groupName + '/simple want - already wanted, before connection', function (t) {
     createAsync(function (async) {
       const blobs = createBlobs('want', async)
       const h = hash(Fake('foobar', 64))
@@ -135,19 +134,19 @@ module.exports = function (createBlobs, createAsync) {
         pull.find(null, function (err, _res) {
           if (err) throw err
           // requests
-          t.deepEqual(_res, res)
+          assert.deepEqual(_res, res)
           async.done()
         })
       )
     }, function (err, results) {
       if (err) throw err
-      // t.deepEqual()
+      // assert.deepEqual()
       t.end()
     })
   })
 
   // if you want something, tell your peer.
-  //  tape('empty hash, not requested over the wire', function (t) {
+  //  tape(groupName + '/simple - empty hash, not requested over the wire', function (t) {
   //    createAsync(function (async) {
   //      var blobs = createBlobs('want', async)
   //      var empty = hash(new Buffer(0))
@@ -167,7 +166,7 @@ module.exports = function (createBlobs, createAsync) {
   //
   //    }, function (err, results) {
   //      if(err) throw err
-  //      //t.deepEqual()
+  //      //assert.deepEqual()
   //      t.end()
   //    })
   //  })

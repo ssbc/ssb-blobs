@@ -10,7 +10,8 @@ const testCreate = (name, async) => Blobs(
   name
 )
 
-require('./suite/simple')(testCreate, interleavings.test)
-require('./suite/integration')(testCreate, interleavings.test)
-require('./suite/legacy')(testCreate, interleavings.test)
-require('./suite/push')(testCreate, interleavings.test)
+const name = 'ASYNC'
+require('./suite/simple')(testCreate, interleavings.test, name)
+require('./suite/integration')(testCreate, interleavings.test, name)
+require('./suite/legacy')(testCreate, interleavings.test, name)
+require('./suite/push')(testCreate, interleavings.test, name)

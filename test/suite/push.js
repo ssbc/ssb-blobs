@@ -7,7 +7,7 @@ const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
-module.exports = function (createBlobs, createAsync) {
+module.exports = function (createBlobs, createAsync, groupName = '?') {
   /*
     push
       tell peers about a blob that you have,
@@ -19,7 +19,7 @@ module.exports = function (createBlobs, createAsync) {
 
   */
 
-  tape('push 3', function (t) {
+  tape(groupName + '/push 3', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
