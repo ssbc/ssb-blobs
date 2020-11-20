@@ -31,6 +31,10 @@ exports.permissions = {
 
 exports.init = function (sbot, config) {
   const level = Level(path.join(config.path, 'blobs_push'), { valueEncoding: 'json' })
+  sbot.close.hook(function (fn, args) {
+    level.close(() => fn(...args))
+  })
+
   const blobs = Inject(
     BlobStore(path.join(config.path, 'blobs')),
     BlobPush(level),
@@ -38,14 +42,9 @@ exports.init = function (sbot, config) {
     config.blobs
   )
 
-  // TODO only start this if blobs_push has been loaded into push
   sbot.on('rpc:connect', function (rpc) {
     if (rpc.id === sbot.id) return
     blobs._onConnect(rpc, rpc.id)
-  })
-
-  sbot.close.hook(function (fn, args) {
-    level.close(() => fn(...args))
   })
 
   return blobs

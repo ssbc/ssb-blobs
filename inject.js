@@ -1,4 +1,5 @@
 'use strict'
+const pullDefer = require('pull-defer')
 function isEmpty (o) {
   for (const k in o) if (k) return false
   return true
@@ -62,22 +63,11 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
   const push = {}
   let send = {}
 
-  function onReady (fn) {
-    return function _onReady (...args) {
-      if (!blobPush.state.isSync) {
-        return setTimeout(() => _onReady(...args), 100)
-      }
-      fn(...args)
-    }
-  }
-
-  const setPush = () => {
-    Object.keys(blobPush.state.set).forEach(blobId => {
-      if (blobId in push) return
-      push[blobId] = {}
+  blobPush.state(state => {
+    Object.keys(state).forEach(blobId => {
+      push[blobId] = push[blobId] || {}
     })
-  }
-  onReady(setPush)()
+  })
 
   function queue (id, hops) {
     if (hops < 0) want[id] = hops
@@ -346,16 +336,18 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
       id = toBlobId(id)
       // also store the id to push.
       if (!isBlobId(id)) { return cb(new Error('invalid hash:' + id)) }
-
-      push[id] = push[id] || {}
       queue(id, -1)
-      blobPush.add(id, cb)
+      blobPush.add(id, cb) // leads to update of push
     },
     pushed: function () {
       return pushed.listen()
     },
     createWants: function () {
-      return createWantStream(this.id)
+      const source = pullDefer.source()
+      blobPush.onReady(() => {
+        source.resolve(createWantStream(this.id))
+      })
+      return source
     },
     // private api. used for testing. not exposed over rpc.
     _wantSink: wantSink,
@@ -365,7 +357,10 @@ module.exports = function inject (blobStore, blobPush, name, opts) {
       // that they are not legacy style.
       // process is called when wantSync
       // doesn't immediately get an error.
-      pull(other.blobs.createWants(), wantSink(other))
+      blobPush.onReady(() => {
+        pull(other.blobs.createWants(), wantSink(other))
+      })
+      // not sure why onReady is needed here but required for tests to pass
     },
     help: function () {
       return require('./help')

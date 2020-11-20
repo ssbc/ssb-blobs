@@ -69,7 +69,7 @@ tape('secret-stack - push persistence', function (t) {
         t.error(err, 'alice restarts')
         alice = Server({ name, caps, startUnclean: true })
 
-        const close = () => {
+        const finish = () => {
           t.end()
           alice.close()
           bob.close()
@@ -77,7 +77,7 @@ tape('secret-stack - push persistence', function (t) {
         const timeout = setTimeout(
           () => {
             t.fail('bob receives blob')
-            close()
+            finish()
           },
           2000
         )
@@ -91,16 +91,13 @@ tape('secret-stack - push persistence', function (t) {
             if (err) throw err
 
             t.equal(ary[0].id, _hash, 'bob receives blob')
-            close()
+            finish()
           })
         )
 
-        // TODO add alice.blobs.isReady
-        setTimeout(() => {
-          alice.connect(bob.address(), function (err, rpc) {
-            t.error(err, 'alice connects to bob')
-          })
-        }, 500)
+        alice.connect(bob.address(), function (err, rpc) {
+          t.error(err, 'alice connects to bob')
+        })
       })
     })
   )
