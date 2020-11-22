@@ -1,15 +1,15 @@
 'use strict'
-function isEmpty (o) {
-  for (const k in o) if (k) return false
-  return true
-}
-
 const Notify = require('pull-notify')
 const pull = require('pull-stream')
 const isBlobId = require('ssb-ref').isBlob
 
-// var MB = 1024 * 1024
-// var MAX_SIZE = 5 * MB
+const MB = 1024 * 1024
+const MAX_SIZE = 5 * MB
+
+function isEmpty (o) {
+  for (const k in o) if (k) return false
+  return true
+}
 
 function clone (obj) {
   const o = {}
@@ -41,35 +41,43 @@ function wrap (fn) {
   }
 }
 
-module.exports = function inject (blobs, set, name, opts) {
+module.exports = function inject (blobStore, blobPush, name, opts) {
   opts = opts || {}
   // sympathy controls whether you'll replicate
   const sympathy = opts.sympathy == null ? 3 : opts.sympathy | 0
   const stingy = opts.stingy === true
   const legacy = opts.legacy !== false
   const pushy = opts.pushy || 3
-  const max = opts.max || 5 * 1024 * 1024
+  const max = opts.max || MAX_SIZE
 
-  const notify = Notify()
-  const pushed = Notify()
+  const peers = {} // currently connected peers - { Peer: RPC }
+  const peerBlobs = {} // tracks blob locations - { Peer: { BlobId: Size } }
 
-  const peers = {}
-  const want = {}; const push = {}; const waiting = {}; const getting = {}
-  const available = {}; const streams = {}
-  let send = {}
+  const streams = {}
+
+  const want = {}
+  const push = {}
+
+  const getting = {}
+  const waiting = {}
+
+  const pushed = Notify() // makes a stream of blob hashes which have reached 'pushy' goal
+  const notify = Notify() // used with createWants + legacySync
 
   function queue (id, hops) {
-    if (hops < 0) { want[id] = hops } else { delete want[id] }
+    if (hops < 0) want[id] = hops
+    else delete want[id]
 
-    send[id] = hops
-    const _send = send
-    send = {}
-    notify(_send)
+    notify({ [id]: hops })
   }
 
-  function isAvailable (id) {
+  function findPeerWithBlob (id) {
     for (const peer in peers) {
-      if (available[peer] && available[peer][id] < max && peers[peer]) { return peer }
+      if (
+        peerBlobs[peer] &&
+        peerBlobs[peer][id] < max &&
+        peers[peer]
+      ) return peer
     }
   }
 
@@ -78,16 +86,19 @@ module.exports = function inject (blobs, set, name, opts) {
 
     getting[id] = peer
     const source = peers[peer].blobs.get({ key: id, max: max })
-    pull(source, blobs.add(id, function (err, _id) {
-      delete getting[id]
-      if (err) {
-        if (available[peer]) delete available[peer][id]
-        // check if another peer has this.
-        // if so get it from them.
-        peer = isAvailable(id)
-        if (peer) get(peer, id)
-      }
-    }))
+    pull(
+      source,
+      blobStore.add(id, (err, _id) => {
+        delete getting[id]
+        if (err) {
+          if (peerBlobs[peer]) delete peerBlobs[peer][id]
+          // check if another peer has this.
+          // if so get it from them.
+          peer = findPeerWithBlob(id)
+          if (peer) get(peer, id)
+        }
+      })
+    )
   }
 
   function wants (peer, id, hops) {
@@ -95,13 +106,13 @@ module.exports = function inject (blobs, set, name, opts) {
     if (!want[id] || want[id] < hops) {
       want[id] = hops
       queue(id, hops)
-      peer = isAvailable(id)
+      peer = findPeerWithBlob(id)
       if (peer) get(peer, id)
     }
   }
 
   pull(
-    blobs.ls({ old: false, meta: true }),
+    blobStore.ls({ old: false, meta: true }),
     pull.drain(function (data) {
       queue(data.id, data.size)
       delete want[data.id]
@@ -113,8 +124,8 @@ module.exports = function inject (blobs, set, name, opts) {
 
   function has (peerId, id, size) {
     if (typeof peerId !== 'string') throw new Error('peer must be string id')
-    available[peerId] = available[peerId] || {}
-    available[peerId][id] = size
+    peerBlobs[peerId] = peerBlobs[peerId] || {}
+    peerBlobs[peerId][id] = size
     // if we are broadcasting this blob,
     // mark this peer has it.
     // if N peers have it, we can stop broadcasting.
@@ -122,8 +133,9 @@ module.exports = function inject (blobs, set, name, opts) {
       push[id][peerId] = size
       if (Object.keys(push[id]).length >= pushy) {
         const data = { key: id, peers: push[id] }
-        set.remove(id)
-        delete push[id]; pushed(data)
+        blobPush.remove(id)
+        delete push[id]
+        pushed(data)
       }
     }
     if (want[id] && !getting[id] && size < max) get(peerId, id)
@@ -138,7 +150,7 @@ module.exports = function inject (blobs, set, name, opts) {
             n++
             // check whether we already *HAVE* this file.
             // respond with it's size, if we do.
-            blobs.size(id, function (err, size) { // XXX
+            blobStore.size(id, function (err, size) { // XXX
               if (err) return cb(err)
 
               if (size) res[id] = size
@@ -160,10 +172,56 @@ module.exports = function inject (blobs, set, name, opts) {
 
   function dead (peerId) {
     delete peers[peerId]
-    delete available[peerId]
+    delete peerBlobs[peerId]
     delete streams[peerId]
   }
 
+  function createWantStream (id) {
+    if (!streams[id]) {
+      streams[id] = notify.listen()
+
+      // merge in ids we are pushing.
+      const w = clone(want)
+      for (const k in push) w[k] = -1
+      streams[id].push(w)
+    }
+    return pull(
+      streams[id],
+      onAbort((err, cb) => {
+        streams[id] = false
+        cb(err)
+      })
+    )
+  }
+
+  function wantSink (peer) {
+    createWantStream(peer.id) // set streams[peer.id]
+
+    let modern = false
+    return pull.drain(
+      function (data) {
+        modern = true
+        // respond with list of blobs you already have,
+        process(data, peer.id, function (err, hasData) {
+          if (err) console.error(err) // ):
+          // (if you have any)
+          if (!isEmpty(hasData) && streams[peer.id]) streams[peer.id].push(hasData)
+        })
+      },
+      function (err) {
+        if (err && !modern) {
+          streams[peer.id] = false
+          if (legacy) legacySync(peer)
+          return
+        }
+        // if can handle unpeer another way,
+        // then can refactor legacy handling out of sight.
+
+        // handle error and fallback to legacy mode, if enabled.
+        if (peers[peer.id] === peer) { dead(peer.id) }
+      }
+    )
+  }
   // LEGACY LEGACY LEGACY
   function legacySync (peer) {
     if (!legacy) return
@@ -203,50 +261,6 @@ module.exports = function inject (blobs, set, name, opts) {
   }
   // LEGACY LEGACY LEGACY
 
-  function createWantStream (id) {
-    if (!streams[id]) {
-      streams[id] = notify.listen()
-
-      // merge in ids we are pushing.
-      const w = clone(want)
-      for (const k in push) w[k] = -1
-      streams[id].push(w)
-    }
-    return pull(streams[id], onAbort(function (err, cb) {
-      streams[id] = false
-      cb(err)
-    }))
-  }
-
-  function wantSink (peer) {
-    createWantStream(peer.id) // set streams[peer.id]
-
-    let modern = false
-    return pull.drain(
-      function (data) {
-        modern = true
-        // respond with list of blobs you already have,
-        process(data, peer.id, function (err, hasData) {
-          if (err) console.error(err) // ):
-          // (if you have any)
-          if (!isEmpty(hasData) && streams[peer.id]) streams[peer.id].push(hasData)
-        })
-      },
-      function (err) {
-        if (err && !modern) {
-          streams[peer.id] = false
-          if (legacy) legacySync(peer)
-          return
-        }
-        // if can handle unpeer another way,
-        // then can refactor legacy handling out of sight.
-
-        // handle error and fallback to legacy mode, if enabled.
-        if (peers[peer.id] === peer) { dead(peer.id) }
-      }
-    )
-  }
-
   const self = {
     // id: name,
     has: function (id, cb) {
@@ -258,39 +272,40 @@ module.exports = function inject (blobs, set, name, opts) {
         }
       } else if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
 
-      if (!legacy) {
-        blobs.has.call(this, id, cb)
-      } else {
-      // LEGACY LEGACY LEGACY
-        if (this === self || !this || this === global) { // a local call
-          return blobs.has.call(this, id, cb)
-        }
-        // ELSE, interpret remote calls to has as a WANT request.
-        // handling this by calling process (which calls size())
-        // avoids a race condition in the tests.
-        // (and avoids doubling the number of calls)
-        const a = Array.isArray(id) ? id : [id]
-        const o = {}
-        a.forEach(function (h) { o[h] = -1 })
-        // since this is always "has" process will never use the second arg.
-        process(o, null, function (err, res) {
-          if (err) return cb(err)
-          const a = []; for (const k in o) a.push(res[k] > 0)
-          cb(null, Array.isArray(id) ? a : a[0])
-        })
-      // LEGACY LEGACY LEGACY
+      if (legacy !== true) {
+        blobStore.has.call(this, id, cb)
+        return
       }
+
+      // LEGACY LEGACY LEGACY
+      if (this === self || !this || this === global) { // a local call
+        return blobStore.has.call(this, id, cb)
+      }
+      // ELSE, interpret remote calls to has as a WANT request.
+      // handling this by calling process (which calls size())
+      // avoids a race condition in the tests.
+      // (and avoids doubling the number of calls)
+      const a = Array.isArray(id) ? id : [id]
+      const o = {}
+      a.forEach(function (h) { o[h] = -1 })
+      // since this is always "has" process will never use the second arg.
+      process(o, null, function (err, res) {
+        if (err) return cb(err)
+        const a = []; for (const k in o) a.push(res[k] > 0)
+        cb(null, Array.isArray(id) ? a : a[0])
+      })
+      // LEGACY LEGACY LEGACY
     },
-    size: wrap(blobs.size),
-    get: blobs.get,
-    getSlice: blobs.getSlice,
-    add: wrap(blobs.add),
-    rm: wrap(blobs.rm),
-    ls: blobs.ls,
+    size: wrap(blobStore.size),
+    get: blobStore.get,
+    getSlice: blobStore.getSlice,
+    add: wrap(blobStore.add),
+    rm: wrap(blobStore.rm),
+    ls: blobStore.ls,
     changes: function () {
       // XXX for bandwidth sensitive peers, don't tell them about blobs we arn't trying to push.
       return pull(
-        blobs.ls({ old: false, meta: false }),
+        blobStore.ls({ old: false, meta: false }),
         pull.filter(function (id) {
           return !stingy || push[id]
         })
@@ -301,13 +316,12 @@ module.exports = function inject (blobs, set, name, opts) {
       if (!isBlobId(id)) { return cb(new Error('invalid id:' + id)) }
       // always broadcast wants immediately, because of race condition
       // between has and adding a blob (needed to pass test/async.js)
-      if (blobs.isEmptyHash(id)) return cb(null, true)
+      if (blobStore.isEmptyHash(id)) return cb(null, true)
 
-      const peerId = isAvailable(id)
-
-      if (waiting[id]) { waiting[id].push(cb) } else {
+      if (waiting[id]) waiting[id].push(cb)
+      else {
         waiting[id] = [cb]
-        blobs.size(id, function (err, size) {
+        blobStore.size(id, function (err, size) {
           if (err) return cb(err)
           if (size != null) {
             while (waiting[id].length) { waiting[id].shift()(null, true) }
@@ -316,9 +330,10 @@ module.exports = function inject (blobs, set, name, opts) {
         })
       }
 
-      if (!peerId && waiting[id]) queue(id, -1)
-
+      const peerId = findPeerWithBlob(id)
       if (peerId) return get(peerId, id)
+
+      if (waiting[id]) queue(id, -1)
     },
     push: function (id, cb) {
       id = toBlobId(id)
@@ -327,7 +342,7 @@ module.exports = function inject (blobs, set, name, opts) {
 
       push[id] = push[id] || {}
       queue(id, -1)
-      set.add(id, cb)
+      blobPush.add(id, cb)
     },
     pushed: function () {
       return pushed.listen()
@@ -339,11 +354,12 @@ module.exports = function inject (blobs, set, name, opts) {
     _wantSink: wantSink,
     _onConnect: function (other, name) {
       peers[other.id] = other
-      // sending of your wants starts when you we know
-      // that they are not legacy style.
-      // process is called when wantSync
-      // doesn't immediately get an error.
-      pull(other.blobs.createWants(), wantSink(other))
+      // sending of your wants starts when you we know that they are not legacy style.
+      // process is called when wantSync doesn't immediately get an error.
+      pull(
+        other.blobs.createWants(),
+        wantSink(other)
+      )
     },
     help: function () {
       return require('./help')
