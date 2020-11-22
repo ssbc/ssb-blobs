@@ -1,8 +1,8 @@
 const interleavings = require('interleavings')
 
 const Blobs = require('../inject')
-const MockStore = require('./mock/blobs')
-const MockPush = require('./mock/set')
+const MockStore = require('./mock/blob-store')
+const MockPush = require('./mock/blob-push')
 
 const testCreate = (name, async) => Blobs(
   MockStore(name, async),

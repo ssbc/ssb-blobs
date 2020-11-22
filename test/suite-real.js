@@ -6,7 +6,7 @@ const level = require('level')
 
 const Blobs = require('../inject')
 const BlobStore = require('../blob-store')
-const BlobPush = require('../set')
+const BlobPush = require('../blob-push')
 const { sync } = require('./util')
 
 const createBlobs = (name, async) => {
