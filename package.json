@@ -29,6 +29,7 @@
     "pull-bitflipper": "^0.1.0",
     "rimraf": "^3.0.0",
     "scuttle-testbot": "^1.4.0",
+    "ssb-keys": "^8.0.0",
     "standard": "^16.0.2",
     "tap-spec": "^5.0.0",
     "tape": "^4.5.1"

@@ -8,7 +8,7 @@ const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
-module.exports = function (createBlobs, createAsync) {
+module.exports = function (createBlobs, createAsync, groupName = '?') {
   // function log (name) {
   //   if(LOGGING)
   //     return pull.through(function (e) {
@@ -18,14 +18,14 @@ module.exports = function (createBlobs, createAsync) {
   //     return pull.through()
   // }
 
-  tape('want - has', function (t) {
+  tape(groupName + '/integration - want, has', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
       const blob = Fake('foobar', 64)
       const h = hash(blob)
 
-      u.peers('alice', alice, 'bob', bob)//, async)
+      u.peers('alice', alice, 'bob', bob)
 
       alice.want(h, function (err, has) {
         if (err) throw err
@@ -39,13 +39,13 @@ module.exports = function (createBlobs, createAsync) {
       })
 
       pull(pull.once(blob), bob.add())
-    }, function (err) {
+    }, function done (err) {
       if (err) throw err
       t.end()
     })
   })
 
-  tape('want - has 2', function (t) {
+  tape(groupName + '/integration - want, has 2', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -69,7 +69,7 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
-  tape('want - want -has', function (t) {
+  tape(groupName + '/integration - want, want, has', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -97,7 +97,7 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
-  tape('peers want what you have', function (t) {
+  tape(groupName + '/integration - peers want what you have', function (t) {
     createAsync(function (async) {
       if (Array.isArray(process._events.exit)) { debug(process._events.exit.reverse()) }
       const alice = createBlobs('alice', async)
@@ -119,14 +119,17 @@ module.exports = function (createBlobs, createAsync) {
       )
 
       alice.want(h, function () {})
-      pull(pull.once(blob), alice.add())
+      pull(
+        pull.once(blob),
+        alice.add()
+      )
     }, function (err) {
       if (err) throw err
       t.end()
     })
   })
 
-  tape('triangle', function (t) {
+  tape(groupName + '/integration - triangle', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -156,7 +159,7 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
-  tape('corrupt', function (t) {
+  tape(groupName + '/integration - corrupt', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -192,7 +195,7 @@ module.exports = function (createBlobs, createAsync) {
     })
   })
 
-  tape('cycle', function (t) {
+  tape(groupName + '/integration - cycle', function (t) {
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)

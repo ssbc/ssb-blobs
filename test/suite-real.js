@@ -6,7 +6,7 @@ const level = require('level')
 
 const Blobs = require('../inject')
 const BlobStore = require('../blob-store')
-const Set = require('../set')
+const BlobPush = require('../set')
 const { sync } = require('./util')
 
 const createBlobs = (name, async) => {
@@ -19,14 +19,15 @@ const createBlobs = (name, async) => {
 
   return Blobs(
     BlobStore(dir),
-    Set(level(dir, { valueEncoding: 'json' })),
+    BlobPush(level(dir, { valueEncoding: 'json' })),
     name
   )
 }
 
 // since we are using the real FS this time,
 // we don't need to apply fake async.
-require('./suite/simple')(createBlobs, sync)
-require('./suite/integration')(createBlobs, sync)
-require('./suite/legacy')(createBlobs, sync)
-require('./suite/push')(createBlobs, sync)
+const name = 'REAL'
+require('./suite/simple')(createBlobs, sync, name)
+require('./suite/integration')(createBlobs, sync, name)
+require('./suite/legacy')(createBlobs, sync, name)
+require('./suite/push')(createBlobs, sync, name)

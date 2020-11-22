@@ -3,12 +3,12 @@ const pull = require('pull-stream')
 
 const Blobs = require('../inject')
 const MockStore = require('./mock/blobs')
-const MockSet = require('./mock/set')
+const MockPush = require('./mock/set')
 const { sync } = require('./util')
 
 const createBlobs = (name, _async) => Blobs(
   MockStore(name, _async),
-  MockSet(_async),
+  MockPush(_async),
   name
 )
 

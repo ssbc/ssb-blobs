@@ -1,5 +1,6 @@
 const tape = require('tape')
 const pull = require('pull-stream')
+const { generate } = require('ssb-keys')
 const { hash, Server } = require('./util')
 
 // deterministic keys make testing easy.
@@ -7,9 +8,9 @@ const caps = {
   shs: hash('TESTBLOBS')
 }
 
-tape('alice pushes to bob', function (t) {
-  const alice = Server({ seed: hash('ALICE'), caps })
-  const bob = Server({ seed: hash('BOB'), caps })
+tape('secret-stack - alice pushes to bob', function (t) {
+  const alice = Server({ caps })
+  const bob = Server({ caps })
 
   // Avoid race because of async server creation, introduced secret-stack@6.
   //
@@ -39,7 +40,7 @@ tape('alice pushes to bob', function (t) {
     )
 
     pull(
-      pull.values([hello]),
+      pull.once(hello),
       alice.blobs.add(function (err, hash) {
         if (err) throw err
         _hash = hash
@@ -49,13 +50,14 @@ tape('alice pushes to bob', function (t) {
   })
 })
 
-tape('close', t => {
-  const alice = Server({ seed: hash('ALICE') })
+tape('secret-stack - close', t => {
+  const keys = generate()
+  const alice = Server({ name: 'alice', keys })
 
   alice.close((err) => {
     t.error(err)
 
-    const alice = Server({ seed: hash('ALICE'), startUnclean: true })
+    const alice = Server({ name: 'alice', keys, startUnclean: true })
     alice.close(t.end)
   })
 })
