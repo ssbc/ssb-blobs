@@ -1,16 +1,22 @@
 const debug = require('debug')('ssb-blobs')
 const tape = require('tape')
 const pull = require('pull-stream')
-const assert = require('assert')
 
 const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
 module.exports = function (createBlobs, createAsync, groupName = '?') {
+  // NOTE: for the suite-async tests the createAsync function
+  // makes 100x copies of the tests and tries different callback timings
+  // to see if it this effects results
+  const PLAN_SCALAR = groupName === 'ASYNC' ? 100 : 1
+
   // client is legacy. call has on a peer, should emit want({<id>: -2})
 
   tape(groupName + '/legacy - legacy calls modern', function (t) {
+    t.plan(PLAN_SCALAR * 7)
+
     createAsync(function (async) {
       // legacy tests
 
@@ -33,9 +39,8 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         modern.createWants(),
         pull.drain(req => {
-          assert.deepEqual(req, expected[n])
+          t.deepEqual(req, expected[n]) // 3 deepEqual
           n++
-          // if (n === expected.length - 1) async.done()
         })
       )
 
@@ -45,13 +50,13 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       setTimeout(() => {
         modern.has.call({ id: 'other' }, h, function (err, value) {
           if (err) throw err
-          assert.equal(value, false)
+          t.equal(value, false)
 
           pull(
             pull.once(blob),
             modern.add((err, hash) => {
               if (err) throw err
-              assert.equal(hash, h, 'add blob, confirm has same hash')
+              t.equal(hash, h, 'add blob, confirm has same hash')
             })
           )
         })
@@ -61,13 +66,13 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         modern.changes(),
         pull.drain(hash => {
-          assert.equal(hash, h, 'change stream emits hash')
+          t.equal(hash, h, 'change stream emits hash')
 
           pull(
             modern.get(hash),
             pull.collect((err, ary) => {
               if (err) throw err
-              assert.deepEqual(Buffer.concat(ary), blob)
+              t.deepEqual(Buffer.concat(ary), blob)
               async.done()
             })
           )
@@ -75,11 +80,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       )
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/legacy - modern calls legacy', function (t) {
+    t.plan(PLAN_SCALAR * 1)
+
     createAsync(function (async) {
       const modern = createBlobs('modern', async)
       const legacy = createBlobs('legacy', async)
@@ -111,13 +117,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
 
       pull(pull.once(blob), legacy.add(function (err, _h) {
         if (err) throw err
-        assert.equal(_h, h)
+        t.equal(_h, h)
         debug('ADDED', _h)
       }))
     }, function (err) {
       debug(err)
       if (err) throw err
-      t.end()
     })
   })
 }

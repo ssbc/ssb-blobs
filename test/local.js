@@ -13,6 +13,7 @@ const createBlobs = (name, _async) => Blobs(
 )
 
 tape('local - createWants does not error after abort', function (t) {
+  t.plan(3)
   sync(function (async) {
     const blobs = createBlobs('simple', async)
 
@@ -27,7 +28,6 @@ tape('local - createWants does not error after abort', function (t) {
         pull.collect(function (err, res) {
           t.error(err, 'wants')
           t.deepEquals(res, [{}], 'empty wants')
-          t.end()
         })
       )
     })

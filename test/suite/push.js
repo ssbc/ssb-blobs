@@ -1,13 +1,17 @@
 const debug = require('debug')('ssb-blobs')
 const tape = require('tape')
 const pull = require('pull-stream')
-const assert = require('assert')
 const cont = require('cont')
 const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
 module.exports = function (createBlobs, createAsync, groupName = '?') {
+  // NOTE: for the suite-async tests the createAsync function
+  // makes 100x copies of the tests and tries different callback timings
+  // to see if it this effects results
+  const PLAN_SCALAR = groupName === 'ASYNC' ? 100 : 1
+
   /*
     push
       tell peers about a blob that you have,
@@ -20,6 +24,8 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
   */
 
   tape(groupName + '/push - 3', function (t) {
+    t.plan(PLAN_SCALAR * 2)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -36,13 +42,13 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         alice.pushed(),
         pull.drain((data) => {
-          assert.deepEqual(data, { key: h, peers: { bob: 64, carol: 64, dan: 64 } })
+          t.deepEqual(data, { key: h, peers: { bob: 64, carol: 64, dan: 64 } })
           debug('PUSHED', data)
           cont.para([bob, carol, dan].map(p => cont(p.has)(h)))((err, ary) => {
             if (err) throw err
             debug('HAS', err, ary)
             if (err) throw err
-            assert.deepEqual(ary, [true, true, true])
+            t.deepEqual(ary, [true, true, true])
             async.done()
           })
         })
@@ -52,7 +58,6 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       alice.push(h)
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 }

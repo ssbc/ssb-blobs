@@ -2,13 +2,17 @@ const debug = require('debug')('ssb-blobs')
 const tape = require('tape')
 const pull = require('pull-stream')
 const bitflipper = require('pull-bitflipper')
-const assert = require('assert')
 
 const u = require('../util')
 const Fake = u.fake
 const hash = u.hash
 
 module.exports = function (createBlobs, createAsync, groupName = '?') {
+  // NOTE: for the suite-async tests the createAsync function
+  // makes 100x copies of the tests and tries different callback timings
+  // to see if it this effects results
+  const PLAN_SCALAR = groupName === 'ASYNC' ? 100 : 1
+
   // function log (name) {
   //   if(LOGGING)
   //     return pull.through(function (e) {
@@ -19,6 +23,8 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
   // }
 
   tape(groupName + '/integration - want, has', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -33,7 +39,7 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
         alice.has(h, function (err, has) {
           debug('ALICE has!', h, has)
           if (err) throw err
-          assert.ok(has)
+          t.ok(has)
           async.done()
         })
       })
@@ -41,11 +47,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(pull.once(blob), bob.add())
     }, function done (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - want, has 2', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -59,17 +66,18 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
         if (err) throw err
         alice.has(h, function (err, has) {
           if (err) throw err
-          assert.ok(has)
+          t.ok(has)
           async.done()
         })
       })
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - want, want, has', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -85,7 +93,7 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
         if (err) throw err
         alice.has(h, function (err, has) {
           if (err) throw err
-          assert.ok(has)
+          t.ok(has)
           async.done()
         })
       })
@@ -93,11 +101,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(pull.once(blob), carol.add())
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - peers want what you have', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       if (Array.isArray(process._events.exit)) { debug(process._events.exit.reverse()) }
       const alice = createBlobs('alice', async)
@@ -113,7 +122,7 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         carol.changes(),
         pull.drain(function (_h) {
-          assert.equal(_h, h)
+          t.equal(_h, h)
           async.done()
         })
       )
@@ -125,11 +134,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       )
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - triangle', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -144,7 +154,7 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         bob.changes(),
         pull.drain(function (_h) {
-          assert.equal(_h, h)
+          t.equal(_h, h)
           async.done()
         })
       )
@@ -155,11 +165,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       bob.want(h, function () {})
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - corrupt', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -181,7 +192,7 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
         bob.changes(),
         pull.drain(function (_h) {
           debug('HAS', _h)
-          assert.equal(_h, h)
+          t.equal(_h, h)
           async.done()
         })
       )
@@ -191,11 +202,12 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(pull.once(blob), carol.add())
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 
   tape(groupName + '/integration - cycle', function (t) {
+    t.plan(PLAN_SCALAR)
+
     createAsync(function (async) {
       const alice = createBlobs('alice', async)
       const bob = createBlobs('bob', async)
@@ -210,13 +222,14 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       const h = hash(blob)
       alice.want(h, function (err, has) {
         if (err) throw err
+        t.ok(true)
+        // NOTE! this currently only tests there are no errors thrown?
         async.done()
       })
 
       pull(pull.once(blob), dan.add(h))
     }, function (err) {
       if (err) throw err
-      t.end()
     })
   })
 }

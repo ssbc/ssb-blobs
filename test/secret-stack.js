@@ -9,6 +9,7 @@ const caps = {
 }
 
 tape('secret-stack - alice pushes to bob', function (t) {
+  t.plan(1)
   const alice = Server({ caps })
   const bob = Server({ caps })
 
@@ -33,7 +34,6 @@ tape('secret-stack - alice pushes to bob', function (t) {
         if (err) throw err
 
         t.equal(ary[0].id, _hash)
-        t.end()
         alice.close()
         bob.close()
       })
@@ -51,6 +51,7 @@ tape('secret-stack - alice pushes to bob', function (t) {
 })
 
 tape('secret-stack - close', t => {
+  t.plan(1)
   const keys = generate()
   const alice = Server({ name: 'alice', keys })
 
@@ -58,6 +59,6 @@ tape('secret-stack - close', t => {
     t.error(err)
 
     const alice = Server({ name: 'alice', keys, startUnclean: true })
-    alice.close(t.end)
+    alice.close()
   })
 })
