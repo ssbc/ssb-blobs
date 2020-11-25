@@ -52,9 +52,22 @@ module.exports = function MockBlobStore (name, async) {
       blobId = blobId.key || blobId
       if (blobId === empty) return pull.empty()
 
-      if (store[blobId] && max && store[blobId].length > max) { return pull(pull.error(new Error('bigger than max:' + blobId)), async.through('get-error')) }
-      if (!store[blobId]) { return pull(pull.error(new Error('no blob:' + blobId)), async.through('get-error')) }
-      return pull(pull.values([store[blobId]]), async.through('get'))
+      if (store[blobId] && max && store[blobId].length > max) {
+        return pull(
+          pull.error(new Error('bigger than max:' + blobId)),
+          async.through('get-error')
+        )
+      }
+      if (!store[blobId]) {
+        return pull(
+          pull.error(new Error('no blob:' + blobId)),
+          async.through('get-error')
+        )
+      }
+      return pull(
+        pull.values([store[blobId]]),
+        async.through('get')
+      )
     },
     isEmptyHash: function (h) {
       return h === empty
@@ -92,17 +105,20 @@ module.exports = function MockBlobStore (name, async) {
       }
       if (!cb) cb = (err) => { if (err) throw err }
 
-      return pull(async.through('add'), pull.collect(async(function (err, data) {
-        if (err) return cb(err)
-        data = Buffer.concat(data)
-        const h = add(data, _hash)
-        debug('..ADDED', name, h)
-        if (!h) cb(new Error('wrong hash'))
-        else {
-          notify({ id: h, size: data.length, ts: Date.now() })
-          cb(null, h)
-        }
-      }, 'add-cb')))
+      return pull(
+        async.through('add'),
+        pull.collect(async(function (err, data) {
+          if (err) return cb(err)
+          data = Buffer.concat(data)
+          const h = add(data, _hash)
+          debug('..ADDED', name, h)
+          if (!h) cb(new Error('wrong hash'))
+          else {
+            notify({ id: h, size: data.length, ts: Date.now() })
+            cb(null, h)
+          }
+        }, 'add-cb'))
+      )
     }
   }
 }
