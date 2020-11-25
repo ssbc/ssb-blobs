@@ -54,8 +54,14 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
         })
       )
 
-      pull(pull.once(blob), alice.add())
-      alice.push(h)
+      pull(
+        pull.once(blob),
+        alice.add((err, blobId) => {
+          if (err) throw err
+
+          alice.push(blobId)
+        })
+      )
     }, function (err) {
       if (err) throw err
     })

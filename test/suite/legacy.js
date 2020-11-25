@@ -19,7 +19,6 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
 
     createAsync(function (async) {
       // legacy tests
-
       let n = 0
 
       const modern = createBlobs('modern', async)

@@ -20,8 +20,10 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
     createAsync(function (async) {
       const blobs = createBlobs('simple', async)
       debug(blobs)
-      const b = Fake('hello', 256); const h = hash(b)
+      const b = Fake('hello', 256)
+      const h = hash(b)
       pull(pull.once(b), async.through(), blobs.add(h, function (err, _h) {
+        console.log(err, _h)
         if (err) throw err
         debug('added', _h)
         t.equal(_h, h)
@@ -108,11 +110,11 @@ module.exports = function (createBlobs, createAsync, groupName = '?') {
       pull(
         blobs.createWants.call({ id: 'test' }),
         async.through(),
-        pull.take(2),
+        pull.take(1),
         pull.collect(function (err, _res) {
           if (err) throw err
           // requests
-          t.deepEqual(_res, [{}, res])
+          t.deepEqual(_res, [res])
           async.done()
         })
       )
