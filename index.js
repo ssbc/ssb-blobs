@@ -13,7 +13,6 @@ exports.manifest = {
   ls: 'source',
   has: 'async',
   size: 'async',
-  meta: 'async',
   want: 'async',
   push: 'async',
   changes: 'source',

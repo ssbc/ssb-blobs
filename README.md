@@ -39,6 +39,48 @@ ensuring that there are at least some peers that will have the blob.
 (currently, your peer will continue to pretend they want the
 blob until at least 3 peers report having it)
 
+## API
+
+### `ssb.blobs.add(blobId, cb) => sink`
+
+Creates a pull-stream sink that works well with e.g. `pull-files`
+- `blobId` *String* - (optional) the hash id of the blob you're adding. If the hash of what arrives in the stream doesn't match this the add is aborted
+- `cb` *Function* - a callback which is run which reveives `err, blobId`
+
+Note: as of 2.0.0 any blob you try to add with size >= max (set in config) will result in an Error.
+The error message will say something about can't write to tmpfile, but if you look in the stack trace
+you will see an error about file size
+
+### `ssb.blobs.push(blobId, cb)`
+
+Push a blob out to other peers. This is useful for blobs which are attached to encrypted messages.
+(Because pubs will generally not know about blobs attached to encrypted messgages so won't replicate)
+You will keep pushing the blob out until `pushy` (see config) peers have taken it.
+
+### `ssb.blobs.has(blobId, cb)`
+
+Find out if you have a copy of blob locally
+
+### `ssb.blobs.want(blobId, cb)`
+
+Declare that you want a particular blob. `cb` will be run once the blob arrives
+
+### `ssb.blobs.get(blobId) => source`
+
+Creates a pull-stream source of a blob
+
+### other methods
+
+The following are less commonly used externally but are available:
+- `ssb.blobs.getSlice`
+- `ssb.blobs.rm`
+- `ssb.blobs.ls`
+- `ssb.blobs.meta`
+- `ssb.blobs.changes`
+- `ssb.blobs.createWants`
+- `ssb.blobs.help`
+
+you can read about these in the source code or `./help.js`
 
 ## Configuration
 
@@ -51,7 +93,7 @@ ssb-blobs will be. These are the default values:
   "sympathy": 3,
   "pushy": 3,
   "legacy": true,
-  "max": 5000000,
+  "max": 5 * 1024 * 1024 // 5MB 
 }
 ```
 
@@ -84,9 +126,12 @@ It's probably safe to disable this now since most pubs will have updated by now.
 ### `max` (default `5MB`)
 
 Maximum size of blobs to replicate.
-Note that if you set this too low, blobs will simply fail to be retrieved.
+Notes:
+- blobs of size >= this max cannot be added using `blobs.add`
+- if you request a blob and discover its size is >= max, you will not replicate it from other peers
 
 ## Usage
+
 This plugin is required by default by [ssb-server](https://github.com/ssbc/ssb-server) and doesn't need to be added to your system if you're using a standard Secure Scuttlebutt install. If you're rolling your own, please refer to [the documentation in `plugins.md` in the `secret-stack` repository](https://github.com/ssbc/secret-stack/blob/master/plugins.md) for how to create your own peer-to-peer solution that uses this plugin.
 
 ## License
